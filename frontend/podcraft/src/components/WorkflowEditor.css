@@ -1,0 +1,74 @@
+.editor-container {
+    width: 100%;
+    height: calc(100vh - 9rem);
+    padding: 1rem;
+}
+
+.editor-header {
+    margin: 0 1rem 2rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    justify-content: space-between;
+}
+
+.editor-header h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+    background: linear-gradient(0.25turn, #999, #fff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.editor-header h1 svg {
+    color: #6366f1;
+    font-size: 1.5rem;
+    align-items: center;
+}
+
+.flow-wrapper .react-flow__panel.react-flow__minimap.bottom.right {
+    background: #040511;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.back-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.5rem;
+    background: transparent;
+    border: 1px solid #6366f1;
+    color: #6366f1;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.back-button:hover {
+    background: rgba(99, 102, 241, 0.1);
+    transform: translateY(-1px);
+}
+
+.flow-wrapper {
+    background: #04040F;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    width: 99%;
+    height: calc(100% - -2rem);
+    overflow: hidden;
+}
+
+/* Light theme adjustments */
+.light .flow-wrapper {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+.light .editor-header h1 {
+    background: linear-gradient(0.25turn, #333, #000);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
