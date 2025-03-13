@@ -7,14 +7,13 @@ from jose import JWTError, jwt
 from decouple import config
 from .database import users
 from .models import UserCreate, UserLogin, Token, UserUpdate, UserResponse
-from .routers import podcast
 
-app = FastAPI(title="PodCraft API")
+app = FastAPI()
 
-# Configure CORS
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=["http://localhost:5173"],  # React app
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -101,9 +100,6 @@ async def update_password(user_update: UserUpdate, current_user: dict = Depends(
         {"$set": {"password": hashed_password}}
     )
     return {"message": "Password updated successfully"}
-
-# Include routers
-app.include_router(podcast.router, prefix="/api/podcast", tags=["podcast"])
 
 @app.get("/")
 async def root():
