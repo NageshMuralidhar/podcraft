@@ -1,0 +1,209 @@
+.studio-container {
+    width: 100%;
+    height: calc(100vh - 5rem);
+    padding: 1rem;
+    backdrop-filter: blur(10rem);
+}
+
+.studio-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0 1rem 2rem 1rem;
+}
+
+.studio-header h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+    background: linear-gradient(0.25turn, #999, #fff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.create-workflow-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #6366f1;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.create-workflow-btn:hover {
+    background: #4f46e5;
+    transform: translateY(-1px);
+}
+
+.workflows-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    padding: 1rem;
+}
+
+.workflow-card {
+    background: rgba(99, 102, 241, 0.05);
+    backdrop-filter: blur(8px);
+    border: 2px solid rgba(204, 204, 204, 0.8);
+    border-radius: 12px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.workflow-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(99, 102, 241, 0.3);
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.workflow-card h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    background: linear-gradient(0.25turn, #999, #fff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.workflow-card p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Light theme adjustments */
+.light .workflow-card {
+    background: rgba(99, 102, 241, 0.02);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+.light .workflow-card:hover {
+    border-color: rgba(99, 102, 241, 0.3);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.light .workflow-card h3 {
+    background: linear-gradient(0.25turn, #333, #000);
+    -webkit-background-clip: text;
+}
+
+.light .workflow-card p {
+    color: rgba(0, 0, 0, 0.7);
+}
+
+.flow-wrapper {
+    background: #04040F;
+    /* backdrop-filter: blur(8px); */
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* ReactFlow customization */
+.flow-wrapper .react-flow__node {
+    background: rgba(99, 102, 241, 0.1);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 8px;
+    padding: 4px;
+    color: #fff;
+    font-size: 9px;
+    transition: all 0.3s ease;
+    width: 100px;
+}
+
+.flow-wrapper .react-flow__node:hover {
+    background: rgba(99, 102, 241, 0.2);
+    border-color: rgba(99, 102, 241, 0.5);
+    transform: translateY(-2px);
+}
+
+.flow-wrapper .react-flow__node-input {
+    background: rgba(79, 70, 229, 0.1);
+    border-color: rgba(79, 70, 229, 0.3);
+}
+
+.flow-wrapper .react-flow__node-output {
+    background: rgba(99, 102, 241, 0.1);
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+.flow-wrapper .react-flow__handle {
+    background: #6366f1;
+    width: 4px;
+    height: 4px;
+}
+
+.flow-wrapper .react-flow__edge-path {
+    stroke: #6366f1;
+    stroke-width: 1;
+}
+
+.flow-wrapper .react-flow__controls {
+    /* background: rgba(26, 26, 26, 0.5); */
+    /* backdrop-filter: blur(10px); */
+    /* border-radius: 8px; */
+    /* border: 1px solid rgba(255, 255, 255, 0.1); */
+    /* box-shadow: none; */
+    padding: 4px;
+    margin-bottom: 2rem;
+}
+
+.flow-wrapper .react-flow__controls-button {
+    background: #ccc;
+    border: none;
+    /* color: #fff; */
+    /* border-radius: 4px; */
+}
+
+/* .flow-wrapper .react-flow__controls-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+} */
+
+.flow-wrapper .react-flow__minimap {
+    background: rgba(26, 26, 26, 0.5);
+    backdrop-filter: blur(8px);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.react-flow__panel.react-flow__attribution.bottom.right {
+    display: none;
+}
+
+/* Light theme adjustments */
+.light .flow-wrapper {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 10px #ccc;
+}
+
+.light .flow-wrapper .react-flow__node {
+    background: rgba(99, 102, 241, 0.05);
+    color: #000;
+}
+
+.light .flow-wrapper .react-flow__controls {
+    background: rgba(255, 255, 255, 0.5);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+.light .flow-wrapper .react-flow__controls-button {
+    color: #000;
+}
+
+.light .flow-wrapper .react-flow__minimap {
+    background: rgba(255, 255, 255, 0.5);
+    border-color: rgba(0, 0, 0, 0.1);
+}
