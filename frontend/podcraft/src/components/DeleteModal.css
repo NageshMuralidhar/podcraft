@@ -1,0 +1,138 @@
+.delete-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+}
+
+.delete-modal-content {
+    background: rgba(17, 17, 17, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 2rem;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+.delete-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.delete-modal-header h2 {
+    color: #fff;
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.warning-icon {
+    color: #ef4444;
+    font-size: 1.5rem;
+}
+
+.delete-modal-body {
+    margin-bottom: 2rem;
+}
+
+.delete-modal-body p {
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0.5rem 0;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.podcast-name {
+    color: #6366f1;
+    font-weight: 500;
+}
+
+.warning-text {
+    color: #ef4444 !important;
+    font-size: 0.9rem !important;
+    margin-top: 1rem !important;
+}
+
+.delete-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.cancel-btn,
+.delete-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.cancel-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.delete-btn {
+    background: #ef4444;
+    border: none;
+    color: white;
+}
+
+.delete-btn:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Light theme adjustments */
+.light .delete-modal-content {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+.light .delete-modal-header h2 {
+    color: #000;
+}
+
+.light .delete-modal-body p {
+    color: rgba(0, 0, 0, 0.8);
+}
+
+.light .cancel-btn {
+    border-color: rgba(0, 0, 0, 0.2);
+    color: rgba(0, 0, 0, 0.8);
+}
+
+.light .cancel-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+    border-color: rgba(0, 0, 0, 0.3);
+}

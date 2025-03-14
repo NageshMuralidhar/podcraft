@@ -11,6 +11,11 @@ import json
 TAVILY_API_KEY = config('TAVILY_API_KEY')
 OPENAI_API_KEY = config('OPENAI_API_KEY')
 
+# Debug logging
+print(f"\nLoaded OpenAI API Key: {OPENAI_API_KEY[:7]}...")
+print(f"Key starts with 'sk-proj-': {OPENAI_API_KEY.startswith('sk-proj-')}")
+print(f"Key starts with 'sk-': {OPENAI_API_KEY.startswith('sk-')}\n")
+
 # Set Tavily API key in environment
 os.environ["TAVILY_API_KEY"] = TAVILY_API_KEY
 

@@ -274,22 +274,7 @@ const Home = () => {
             <div className="top-row">
                 <div className="column left-column">
                     <div className="content-card">
-                        <h3>Generated insights <TbSparkles />
-                            {isGenerating && (
-                                <div className="generating-indicator">
-                                    <div className="loading-dots">
-                                        <span></span>
-                                        <span></span>
-                                        <span></span>
-                                    </div>
-                                    <p className="generating-text">
-                                        {!believerResponses.length ? "Researching topic..." :
-                                            !skepticResponses.length ? "Generating believer's perspective..." :
-                                                skepticResponses.length > 0 && !isSuccess ? "Creating podcast with TTS..." :
-                                                    ""}
-                                    </p>
-                                </div>
-                            )}</h3>
+                        <h3>Generated insights <TbSparkles /></h3>
                         <div className="insights-container" ref={insightsRef}>
                             {researchSteps.length === 0 && !believerResponses.length && !skepticResponses.length ? (
                                 <div className="placeholder-content">
@@ -346,6 +331,21 @@ const Home = () => {
                                 </div>
                             )}
                         </div>
+                        {isGenerating && (
+                            <div className="generating-indicator">
+                                <div className="loading-dots">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </div>
+                                <p className="generating-text">
+                                    {!believerResponses.length ? "Researching topic..." :
+                                        !skepticResponses.length ? "Generating believer's perspective..." :
+                                            skepticResponses.length > 0 && !isSuccess ? "Creating podcast with TTS..." :
+                                                ""}
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </div>
                 <div className="column right-column">

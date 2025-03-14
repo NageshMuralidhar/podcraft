@@ -68,20 +68,15 @@
 }
 
 .podcast-icon {
-    width: 80px;
-    height: 80px;
-    background: rgba(99, 102, 241, 0.1);
-    border-radius: 16px;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    font-size: 2rem;
-    color: #6366f1;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 1;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(99, 102, 241, 0.05);
+    border-radius: 12px;
+    width: 60px;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
 }
 
 .podcast-card:hover .podcast-icon {
@@ -283,4 +278,115 @@
     .podcast-card {
         padding: 1rem;
     }
+}
+
+.loading-indicator {
+    text-align: center;
+    padding: 2rem;
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(99, 102, 241, 0.05);
+    border-radius: 12px;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin: 2rem;
+}
+
+.error-message {
+    text-align: center;
+    padding: 2rem;
+    font-size: 1.2rem;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.05);
+    border-radius: 12px;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    margin: 2rem;
+}
+
+.no-podcasts {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem;
+    background: rgba(99, 102, 241, 0.05);
+    border-radius: 16px;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.no-podcasts p {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.8);
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+/* Light theme adjustments */
+.light .loading-indicator {
+    color: rgba(0, 0, 0, 0.8);
+    background: rgba(99, 102, 241, 0.02);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+.light .error-message {
+    color: #dc2626;
+    background: rgba(239, 68, 68, 0.02);
+    border-color: rgba(239, 68, 68, 0.1);
+}
+
+.light .no-podcasts {
+    background: rgba(99, 102, 241, 0.02);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+.light .no-podcasts p {
+    color: rgba(0, 0, 0, 0.8);
+}
+
+.delete-icon {
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.delete-icon:hover {
+    background: rgba(239, 68, 68, 0.1);
+    transform: scale(1.1);
+}
+
+.podcast-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.podcast-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #fff;
+    flex: 1;
+}
+
+/* Light theme adjustments */
+.light .delete-icon {
+    color: #dc2626;
+}
+
+.light .delete-icon:hover {
+    background: rgba(220, 38, 38, 0.1);
+}
+
+.light .podcast-header h3 {
+    color: #000;
 }

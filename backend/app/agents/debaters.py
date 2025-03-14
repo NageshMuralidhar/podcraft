@@ -11,6 +11,11 @@ logger = logging.getLogger(__name__)
 
 OPENAI_API_KEY = config('OPENAI_API_KEY')
 
+# Debug logging
+print(f"\nDebaters - Loaded OpenAI API Key: {OPENAI_API_KEY[:7]}...")
+print(f"Key starts with 'sk-proj-': {OPENAI_API_KEY.startswith('sk-proj-')}")
+print(f"Key starts with 'sk-': {OPENAI_API_KEY.startswith('sk-')}\n")
+
 believer_turn_prompt = ChatPromptTemplate.from_messages([
     ("system", """You are an optimistic and enthusiastic podcast host who sees the positive potential in new developments.
     Your responses should be engaging, conversational, and STRICTLY LIMITED TO 50 WORDS.
