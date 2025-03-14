@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { BrowserRouter as Router, Route, Routes, Navigate, useNavigate, Link } from 'react-router-dom'
 import { TbLayoutSidebarLeftCollapse, TbLayoutSidebarRightCollapse } from "react-icons/tb";
 import { AiFillHome } from "react-icons/ai";
@@ -15,6 +15,7 @@ import Podcasts from './pages/Podcasts'
 import Studio from './pages/Studio'
 import WorkflowEditor from './components/WorkflowEditor'
 import UserModal from './components/UserModal'
+import Toast from './components/Toast'
 import './App.css'
 
 function App() {
@@ -23,6 +24,21 @@ function App() {
   const [isLogin, setIsLogin] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [toast, setToast] = useState(null);
+  const sidebarRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const toggleSidebar = () => {
     setIsOpen(!isOpen);
@@ -42,6 +58,11 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     setIsAuthenticated(false);
+    showToast('Logged out successfully', 'success');
+  };
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
   };
 
   const handleSubmit = async (e) => {
@@ -63,13 +84,14 @@ function App() {
         const data = await response.json();
         localStorage.setItem('token', data.access_token);
         setIsAuthenticated(true);
+        showToast(`Successfully ${isLogin ? 'logged in' : 'signed up'}!`, 'success');
       } else {
         const error = await response.json();
-        alert(error.detail);
+        showToast(error.detail, 'error');
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('An error occurred during authentication');
+      showToast('An error occurred during authentication', 'error');
     }
   };
 
@@ -79,7 +101,7 @@ function App() {
         <div className={`${isAuthenticated && 'simple-bg'}`}>
         </div>
         <div className={`app-container ${isDark ? 'dark' : 'light'} ${!isAuthenticated && isDark ? 'bg-login' : ''} `} >
-          <nav className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
+          <nav ref={sidebarRef} className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
             <div className='product-name'>
               <span><PiGooglePodcastsLogo /> PodCraft <sup>©</sup> <sub>Beta</sub></span>
             </div>
@@ -177,6 +199,16 @@ function App() {
             onClose={() => setIsModalOpen(false)}
             token={localStorage.getItem('token')}
           />
+
+          <div className="toast-container">
+            {toast && (
+              <Toast
+                message={toast.message}
+                type={toast.type}
+                onClose={() => setToast(null)}
+              />
+            )}
+          </div>
         </div>
       </>
     </Router>

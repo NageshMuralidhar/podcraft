@@ -4,4 +4,10 @@ motor==3.3.1
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
-python-decouple==3.8 
+python-decouple==3.8
+langgraph==0.2.14
+langchain>=0.1.0
+langchain-openai>=0.0.5
+langchain-core>=0.2.35
+langchain-community>=0.0.24
+pydub==0.25.1
