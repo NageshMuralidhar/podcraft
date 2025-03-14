@@ -6,4 +6,5 @@ client = AsyncIOMotorClient(MONGODB_URL)
 db = client.podcraft
 
 # Collections
-users = db.users 
+users = db.users
+podcasts = db.podcasts 
