@@ -18,10 +18,17 @@ from .agents.debaters import generate_debate, generate_debate_stream, chunk_text
 from .agents.podcast_manager import PodcastManager
 import json
 import os
+import shutil
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Debug environment variables
+openai_key = config('OPENAI_API_KEY')
+logger.info(f"Loaded OpenAI API Key at startup: {openai_key[:7]}...")
+logger.info(f"Key starts with 'sk-proj-': {openai_key.startswith('sk-proj-')}")
+logger.info(f"Key starts with 'sk-': {openai_key.startswith('sk-')}")
 
 app = FastAPI()
 
@@ -321,5 +328,33 @@ async def list_podcasts(current_user: dict = Depends(get_current_user)):
                 podcast["audio_url"] = f"http://localhost:8000{audio_url}"
             podcast_list.append(podcast)
         return podcast_list
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/podcast/{podcast_id}")
+async def delete_podcast(podcast_id: str, current_user: dict = Depends(get_current_user)):
+    try:
+        # Convert string ID to ObjectId
+        from bson.objectid import ObjectId
+        podcast_obj_id = ObjectId(podcast_id)
+        
+        # Find the podcast first to get its audio path
+        podcast = await podcasts.find_one({"_id": podcast_obj_id, "user_id": str(current_user["_id"])})
+        if not podcast:
+            raise HTTPException(status_code=404, detail="Podcast not found")
+        
+        # Delete the podcast from MongoDB
+        result = await podcasts.delete_one({"_id": podcast_obj_id, "user_id": str(current_user["_id"])})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Podcast not found")
+            
+        # Delete the associated audio files if they exist
+        if "audio_path" in podcast:
+            audio_dir = os.path.dirname(podcast["audio_path"])
+            if os.path.exists(audio_dir):
+                shutil.rmtree(audio_dir)
+        
+        return {"message": "Podcast deleted successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) 

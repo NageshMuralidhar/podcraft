@@ -1,3 +1,4 @@
 backend/app/__pycache__
 backend/.env
 frontend/podcraft/node_modules
+backend/venv/
