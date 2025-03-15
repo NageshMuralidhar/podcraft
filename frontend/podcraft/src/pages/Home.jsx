@@ -504,7 +504,11 @@ const Home = () => {
                             className="prompt-input"
                             disabled={isGenerating}
                         />
-                        <button type="submit" className="prompt-submit" disabled={isGenerating}>
+                        <button
+                            type="submit"
+                            className="prompt-submit"
+                            disabled={isGenerating || !prompt.trim()}
+                        >
                             <RiSendPlaneFill />
                         </button>
                     </form>
