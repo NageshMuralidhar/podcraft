@@ -7,11 +7,20 @@ from datetime import datetime
 from decouple import config
 from motor.motor_asyncio import AsyncIOMotorClient
 from typing import Dict, List
+import logging
+from fastapi import HTTPException, status
 
-OPENAI_API_KEY = config('OPENAI_API_KEY')
-MONGODB_URL = config('MONGODB_URL')
+logger = logging.getLogger(__name__)
 
-client = AsyncIOMotorClient(MONGODB_URL)
+class Settings:
+    MONGODB_URL = config('MONGODB_URL')
+    SECRET_KEY = config('SECRET_KEY')
+    OPENAI_API_KEY = config('OPENAI_API_KEY')
+    # Other settings...
+
+settings = Settings()
+
+client = AsyncIOMotorClient(settings.MONGODB_URL)
 db = client.podcraft
 podcasts = db.podcasts
 
@@ -19,7 +28,7 @@ class PodcastManager:
     def __init__(self):
         self.tts_url = "https://api.openai.com/v1/audio/speech"
         self.headers = {
-            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
             "Content-Type": "application/json"
         }
         # Create absolute path for temp directory
@@ -40,7 +49,7 @@ class PodcastManager:
             print(f"Allowed voices: {self.allowed_voices}")
             
             # Validate and normalize voice_id
-            voice = voice_id.lower()
+            voice = voice_id.lower().strip()
             if voice not in self.allowed_voices:
                 print(f"Warning: Invalid voice ID: {voice_id}. Using default voice 'alloy'")
                 voice = "alloy"
@@ -57,6 +66,7 @@ class PodcastManager:
             print(f"Request headers: {json.dumps(self.headers, indent=2)}")
 
             response = requests.post(self.tts_url, json=payload, headers=self.headers)
+            response.raise_for_status()  # Raises an exception for 4XX/5XX responses
             
             if response.status_code == 200:
                 # Ensure directory exists
@@ -66,16 +76,22 @@ class PodcastManager:
                 print(f"Successfully generated speech file: {filename}")
                 return True
             else:
-                print(f"TTS API Error Response: {response.status_code}")
-                print(f"Error details: {response.text}")
-                return False
+                logger.error(f"API error: {response.status_code} - {response.text}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"External API error: {response.status_code}"
+                )
         except Exception as e:
-            print(f"Error generating speech: {str(e)}")
+            logger.exception(f"Error generating speech: {str(e)}")
             return False
 
     def merge_audio_files(self, audio_files: List[str], output_file: str) -> bool:
         """Merge multiple audio files into one using ffmpeg."""
         try:
+            # Ensure output directory exists
+            output_dir = os.path.dirname(os.path.abspath(output_file))
+            os.makedirs(output_dir, exist_ok=True)
+            
             if not audio_files:
                 print("No audio files to merge")
                 return False
@@ -138,33 +154,25 @@ class PodcastManager:
                 print(f.read())
 
             # Merge all files using the concat demuxer
-            merge_result = subprocess.run([
-                'ffmpeg', '-f', 'concat', '-safe', '0', '-i', list_file,
-                '-c', 'copy', output_file
-            ], capture_output=True, text=True)
-            
-            if merge_result.returncode != 0:
-                print(f"FFmpeg error output: {merge_result.stderr}")
+            try:
+                result = subprocess.run(
+                    ['ffmpeg', '-f', 'concat', '-safe', '0', '-i', list_file,
+                    '-c', 'copy', output_file],
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+            except subprocess.CalledProcessError as e:
+                logger.error(f"FFmpeg command failed: {e.stderr}")
                 return False
-
+            
             # Verify the output file was created
             if not os.path.exists(output_file):
                 print("Failed to create output file")
                 return False
 
             print(f"Successfully created merged audio file: {output_file}")
-
-            # Clean up temporary files
-            try:
-                os.remove(list_file)
-                os.remove(silence_file)
-            except Exception as e:
-                print(f"Warning: Error cleaning up temporary files: {str(e)}")
-
             return True
-        except subprocess.CalledProcessError as e:
-            print(f"FFmpeg error: {e.stderr}")
-            return False
         except Exception as e:
             print(f"Error merging audio files: {str(e)}")
             return False
@@ -305,10 +313,18 @@ class PodcastManager:
             # Clean up the temp directory in case of error
             if os.path.exists(podcast_temp_dir):
                 shutil.rmtree(podcast_temp_dir)
-            print(f"Error in podcast creation: {str(e)}")
+            logger.exception(f"Error in podcast creation: {str(e)}")
             return {
                 "error": str(e)
             }
+        # finally:
+        #     # Clean up temporary files
+        #     for temp_file in [list_file, silence_file]:
+        #         if os.path.exists(temp_file):
+        #             try:
+        #                 os.remove(temp_file)
+        #             except Exception as e:
+        #                 logger.warning(f"Failed to remove temporary file {temp_file}: {e}")
 
     async def get_podcast(self, podcast_id: str) -> Dict:
         """Retrieve a podcast by ID."""

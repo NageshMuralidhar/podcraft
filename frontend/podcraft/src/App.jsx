@@ -27,6 +27,38 @@ function App() {
   const [toast, setToast] = useState(null);
   const sidebarRef = useRef(null);
 
+  // Check for token on initial load
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      // Validate token by making a request to the backend
+      const validateToken = async () => {
+        try {
+          const response = await fetch('http://localhost:8000/user/me', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (response.ok) {
+            setIsAuthenticated(true);
+            console.log('User authenticated from stored token');
+          } else {
+            // Token is invalid, remove it
+            localStorage.removeItem('token');
+            setIsAuthenticated(false);
+            console.log('Stored token is invalid, removed');
+          }
+        } catch (error) {
+          console.error('Error validating token:', error);
+          // Don't remove token on network errors to allow offline access
+        }
+      };
+      
+      validateToken();
+    }
+  }, []);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (sidebarRef.current && !sidebarRef.current.contains(event.target)) {

@@ -6,60 +6,101 @@ import DeleteModal from '../components/DeleteModal';
 import Toast from '../components/Toast';
 import './Podcasts.css';
 
-const AudioPlayer = ({ audioUrl, duration }) => {
+const AudioPlayer = ({ audioUrl }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
+    const [audioDuration, setAudioDuration] = useState(0);
     const audioRef = useRef(null);
+
+    // Check if we have a valid URL
+    const validUrl = audioUrl && audioUrl.trim() !== '';
 
     useEffect(() => {
         const audio = audioRef.current;
-        if (audio) {
+        if (audio && validUrl) {
+            // Add loadedmetadata event to get duration
+            const handleLoadedMetadata = () => {
+                setAudioDuration(audio.duration);
+            };
+            
             const updateProgress = () => {
-                setProgress((audio.currentTime / audio.duration) * 100);
-                setCurrentTime(audio.currentTime);
+                if (audio.duration) {
+                    setProgress((audio.currentTime / audio.duration) * 100);
+                    setCurrentTime(audio.currentTime);
+                }
             };
 
+            audio.addEventListener('loadedmetadata', handleLoadedMetadata);
             audio.addEventListener('timeupdate', updateProgress);
             audio.addEventListener('ended', () => setIsPlaying(false));
 
             return () => {
+                audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
                 audio.removeEventListener('timeupdate', updateProgress);
                 audio.removeEventListener('ended', () => setIsPlaying(false));
             };
         }
-    }, []);
+    }, [audioUrl, validUrl]);
 
     const togglePlay = () => {
-        if (audioRef.current) {
-            if (isPlaying) {
-                audioRef.current.pause();
-            } else {
-                audioRef.current.play();
-            }
-            setIsPlaying(!isPlaying);
+        if (audioRef.current && validUrl) {
+            setIsPlaying((prevIsPlaying) => {
+                if (prevIsPlaying) {
+                    audioRef.current.pause();
+                } else {
+                    audioRef.current.play().catch(err => {
+                        console.error("Error playing audio:", err);
+                        setIsPlaying(false);
+                    });
+                }
+                return !prevIsPlaying;
+            });
         }
     };
 
     const formatTime = (time) => {
+        if (isNaN(time) || time < 0) return '0:00';
         const minutes = Math.floor(time / 60);
         const seconds = Math.floor(time % 60);
         return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     };
+    
+    const seekAudio = (event) => {
+        if (!audioRef.current || !validUrl) return;
+    
+        const progressBar = event.currentTarget;
+        const clickX = event.nativeEvent.offsetX;
+        const progressBarWidth = progressBar.clientWidth;
+    
+        // Calculate the new time based on click position
+        const newTime = (clickX / progressBarWidth) * audioRef.current.duration;
+        audioRef.current.currentTime = newTime; // Seek to new time
+        setProgress((newTime / audioRef.current.duration) * 100);
+    };
 
     return (
         <div className="audio-player">
-            <button className="play-button" onClick={togglePlay}>
+            <button 
+                className="play-button" 
+                onClick={togglePlay} 
+                aria-label={isPlaying ? "Pause" : "Play"}
+                disabled={!validUrl}
+            >
                 {isPlaying ? <FaPause /> : <FaPlay />}
             </button>
-            <div className="progress-bar">
+            <div className="progress-bar" onClick={validUrl ? seekAudio : undefined}>
                 <div className="progress" style={{ width: `${progress}%` }}></div>
             </div>
             <div className="duration">
                 <FaVolumeUp />
-                <span>{formatTime(currentTime)} / {formatTime(duration)}</span>
+                <span>{formatTime(currentTime)} / {formatTime(audioDuration)}</span>
             </div>
-            <audio ref={audioRef} src={audioUrl} preload="metadata" />
+            {validUrl ? (
+                <audio ref={audioRef} src={audioUrl} preload="metadata" />
+            ) : (
+                <audio ref={audioRef} preload="none" />
+            )}
         </div>
     );
 };
@@ -88,6 +129,10 @@ const Podcasts = () => {
                 throw new Error('Failed to fetch podcasts');
             }
 
+            if (response.status === 401) {
+                throw new Error('Unauthorized access. Please log in again.');
+            }
+
             const data = await response.json();
             setPodcasts(data);
         } catch (err) {
@@ -98,7 +143,7 @@ const Podcasts = () => {
     };
 
     const handleDelete = async () => {
-        if (!deleteModal.podcast) return;
+        if (!deleteModal.podcast?._id) return;
 
         try {
             const token = localStorage.getItem('token');
@@ -192,8 +237,7 @@ const Podcasts = () => {
                                     </span>
                                 </div>
                                 <AudioPlayer
-                                    audioUrl={podcast.audio_url}
-                                    duration={podcast.duration || 0}
+                                    audioUrl={podcast.audio_url || ''}
                                 />
                             </div>
                         </div>
