@@ -331,6 +331,34 @@ async def list_podcasts(current_user: dict = Depends(get_current_user)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/podcasts/latest")
+async def get_latest_podcast(current_user: dict = Depends(get_current_user)):
+    try:
+        # Query podcasts for the current user, sorted by creation date (newest first)
+        from bson.objectid import ObjectId
+        
+        # Find the most recent podcast for this user
+        latest_podcast = await podcasts.find_one(
+            {"user_id": str(current_user["_id"])},
+            sort=[("created_at", -1)]  # Sort by created_at in descending order
+        )
+        
+        if not latest_podcast:
+            return {"message": "No podcasts found"}
+        
+        # Convert MongoDB _id to string and create audio URL
+        latest_podcast["_id"] = str(latest_podcast["_id"])
+        
+        if "audio_path" in latest_podcast:
+            audio_url = f"/audio/{os.path.basename(os.path.dirname(latest_podcast['audio_path']))}/final_podcast.mp3"
+            latest_podcast["audio_url"] = f"http://localhost:8000{audio_url}"
+        
+        logger.info(f"Latest podcast found: {latest_podcast['topic']}")
+        return latest_podcast
+    except Exception as e:
+        logger.error(f"Error getting latest podcast: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.delete("/podcast/{podcast_id}")
 async def delete_podcast(podcast_id: str, current_user: dict = Depends(get_current_user)):
     try:
