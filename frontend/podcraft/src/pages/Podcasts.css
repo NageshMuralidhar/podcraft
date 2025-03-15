@@ -1,7 +1,7 @@
 .podcasts-container {
     width: 100%;
     height: calc(100vh - 5rem);
-    padding: 2rem;
+    padding: 2rem 2rem 0 2rem;
     overflow-y: auto;
     background: transparent;
     backdrop-filter: blur(1.5rem);
