@@ -78,17 +78,43 @@ const Home = () => {
         if (audio) {
             const updateTime = () => {
                 setCurrentTime(audio.currentTime);
-                setDuration(audio.duration);
+            };
+            
+            const updateDuration = () => {
+                if (!isNaN(audio.duration) && audio.duration > 0) {
+                    // Validate duration before setting it
+                    if (audio.duration > 86400) {
+                        console.error('Invalid duration detected:', audio.duration);
+                        // Don't update state with invalid duration
+                        return;
+                    }
+                    console.log('Duration updated:', audio.duration);
+                    setDuration(audio.duration);
+                }
             };
 
+            // Add event listeners
             audio.addEventListener('timeupdate', updateTime);
-            audio.addEventListener('loadedmetadata', updateTime);
+            audio.addEventListener('loadedmetadata', updateDuration);
+            audio.addEventListener('durationchange', updateDuration);
+            audio.addEventListener('canplay', updateDuration); // Additional event to catch duration
             audio.addEventListener('ended', () => setIsPlaying(false));
+            audio.addEventListener('error', (e) => {
+                console.error('Audio error in event listener:', e);
+                setIsPlaying(false);
+            });
 
             return () => {
+                // Remove event listeners
                 audio.removeEventListener('timeupdate', updateTime);
-                audio.removeEventListener('loadedmetadata', updateTime);
+                audio.removeEventListener('loadedmetadata', updateDuration);
+                audio.removeEventListener('durationchange', updateDuration);
+                audio.removeEventListener('canplay', updateDuration);
                 audio.removeEventListener('ended', () => setIsPlaying(false));
+                audio.removeEventListener('error', (e) => {
+                    console.error('Audio error:', e);
+                    setIsPlaying(false);
+                });
             };
         }
     }, [audioUrl]);
@@ -104,19 +130,127 @@ const Home = () => {
         }
     }, [audioUrl]);
 
+    // Add a separate effect to check duration when audioUrl changes
+    useEffect(() => {
+        if (audioUrl && audioRef.current) {
+            console.log('Audio URL changed, checking duration...');
+            
+            // Reset current time and check duration
+            setCurrentTime(0);
+            
+            // Create a function to check duration periodically
+            const checkDuration = () => {
+                if (audioRef.current && !isNaN(audioRef.current.duration) && audioRef.current.duration > 0) {
+                    // Validate the duration
+                    if (audioRef.current.duration > 86400) {
+                        console.error('Invalid duration detected in check:', audioRef.current.duration);
+                        return false;
+                    }
+                    console.log('Duration found after URL change:', audioRef.current.duration);
+                    setDuration(audioRef.current.duration);
+                    return true;
+                }
+                return false;
+            };
+            
+            // Try immediately
+            if (!checkDuration()) {
+                // If not successful, try again after a short delay
+                const timerId = setTimeout(async () => {
+                    if (!checkDuration()) {
+                        // If still not successful, try manual calculation
+                        console.log('Duration not available, attempting manual calculation');
+                        try {
+                            const calculatedDuration = await calculateMP3Duration(audioUrl);
+                            console.log('Manually calculated duration:', calculatedDuration);
+                            setDuration(calculatedDuration);
+                        } catch (error) {
+                            console.error('Manual duration calculation failed:', error);
+                            // Set a default duration as fallback
+                            setDuration(300); // Default to 5 minutes
+                        }
+                    }
+                }, 1000);
+                
+                return () => clearTimeout(timerId);
+            }
+        }
+    }, [audioUrl]);
+
+    const checkForExistingPodcast = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            
+            // Fetch the most recent podcast using the new endpoint
+            const response = await fetch('http://localhost:8000/podcasts/latest', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                // Check if we got a podcast (not just a message)
+                if (data && data.audio_url) {
+                    // Set the audio URL directly from the response
+                    setAudioUrl(data.audio_url);
+                    setSuccessMessage('Latest podcast loaded');
+                    setIsSuccess(true);
+                    console.log('Latest podcast loaded:', data.topic);
+                } else if (data && data.audio_path) {
+                    // Fallback to constructing URL from audio_path if audio_url is not present
+                    setAudioUrl(`http://localhost:8000${data.audio_path}`);
+                    setSuccessMessage('Latest podcast loaded');
+                    setIsSuccess(true);
+                    console.log('Latest podcast loaded (using path):', data.topic);
+                } else {
+                    console.log('No podcasts found or no audio URL available');
+                }
+            } else {
+                console.error('Error fetching latest podcast:', await response.text());
+            }
+        } catch (error) {
+            console.error('Error checking for existing podcast:', error);
+        }
+    };
+
+    useEffect(() => {
+        console.log('Component mounted, checking for existing podcasts...');
+        checkForExistingPodcast();
+    }, []);
+
     const togglePlay = () => {
         if (audioRef.current) {
             if (isPlaying) {
                 audioRef.current.pause();
+                setIsPlaying(false);
             } else {
-                audioRef.current.play();
+                const playPromise = audioRef.current.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise
+                        .then(() => {
+                            setIsPlaying(true);
+                        })
+                        .catch(error => {
+                            console.error('Error playing audio:', error);
+                            setSuccessMessage('Error playing audio. Please try again.');
+                        });
+                }
             }
-            setIsPlaying(!isPlaying);
         }
     };
 
     const handleSeek = (e) => {
-        if (!audioRef.current || !audioRef.current.duration) return;
+        if (!audioRef.current || !audioUrl) return;
+        
+        // Check if duration is valid
+        if (isNaN(audioRef.current.duration) || audioRef.current.duration <= 0) {
+            console.warn('Cannot seek: Invalid audio duration');
+            return;
+        }
 
         const progressBar = e.currentTarget;
         const rect = progressBar.getBoundingClientRect();
@@ -126,19 +260,24 @@ const Home = () => {
         const normalizedPosition = Math.max(0, Math.min(1, clickPosition));
         const newTime = normalizedPosition * audioRef.current.duration;
 
+        console.log(`Seeking to ${formatTime(newTime)} (${normalizedPosition * 100}%)`);
+
         // Update audio time
         audioRef.current.currentTime = newTime;
         setCurrentTime(newTime);
-
-        // If audio was paused, start playing from the new position
-        if (!isPlaying) {
-            audioRef.current.play();
-            setIsPlaying(true);
-        }
     };
 
     const formatTime = (time) => {
-        if (!time) return '0:00';
+        // Handle invalid time values
+        if (isNaN(time) || time === null || time === undefined || time < 0) {
+            return '0:00';
+        }
+        
+        // Cap extremely large values (likely errors)
+        if (time > 86400) { // More than 24 hours
+            console.warn('Extremely large duration detected:', time);
+            time = 0; // Reset to 0 for display purposes
+        }
 
         const hours = Math.floor(time / 3600);
         const minutes = Math.floor((time % 3600) / 60);
@@ -261,6 +400,54 @@ const Home = () => {
             console.error('Error:', error);
         } finally {
             setIsGenerating(false);
+        }
+    };
+
+    // Add a function to manually calculate duration for MP3 files
+    const calculateMP3Duration = async (url) => {
+        try {
+            console.log('Attempting to manually calculate MP3 duration for:', url);
+            
+            // Create a temporary audio element
+            const tempAudio = new Audio();
+            
+            // Create a promise to handle the duration calculation
+            const durationPromise = new Promise((resolve, reject) => {
+                // Set up event listeners
+                tempAudio.addEventListener('loadedmetadata', () => {
+                    if (!isNaN(tempAudio.duration) && tempAudio.duration > 0 && tempAudio.duration < 86400) {
+                        console.log('Successfully calculated duration:', tempAudio.duration);
+                        resolve(tempAudio.duration);
+                    } else {
+                        // If duration is invalid, use a default value
+                        console.warn('Invalid duration from calculation, using default');
+                        resolve(300); // Default to 5 minutes (300 seconds)
+                    }
+                });
+                
+                tempAudio.addEventListener('error', (e) => {
+                    console.error('Error calculating duration:', e);
+                    reject(e);
+                });
+                
+                // Set a timeout in case the metadata never loads
+                setTimeout(() => {
+                    console.warn('Duration calculation timed out, using default');
+                    resolve(300); // Default to 5 minutes
+                }, 5000);
+            });
+            
+            // Start loading the audio
+            tempAudio.src = url;
+            tempAudio.load();
+            
+            // Wait for the duration to be calculated
+            const calculatedDuration = await durationPromise;
+            return calculatedDuration;
+            
+        } catch (error) {
+            console.error('Error in duration calculation:', error);
+            return 300; // Default to 5 minutes on error
         }
     };
 
@@ -467,26 +654,56 @@ const Home = () => {
                                         className="play-btn"
                                         onClick={togglePlay}
                                         disabled={!audioUrl}
+                                        aria-label={isPlaying ? "Pause" : "Play"}
                                     >
                                         {isPlaying ? <FaPause /> : <FaPlay />}
                                     </button>
-                                    <div className="player-progress" onClick={handleSeek}>
+                                    <div 
+                                        className="player-progress" 
+                                        onClick={audioUrl ? handleSeek : undefined}
+                                        style={{ cursor: audioUrl ? 'pointer' : 'not-allowed' }}
+                                    >
                                         <div className="progress-bar">
                                             <div
                                                 className="progress"
-                                                style={{ width: `${(currentTime / duration) * 100 || 0}%` }}
+                                                style={{ 
+                                                    width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` 
+                                                }}
                                             />
                                         </div>
                                     </div>
                                     <div className="time-stamps">
-                                        <span>{formatTime(currentTime)}</span>
-                                        <span>{formatTime(duration)}</span>
+                                        <span>{formatTime(currentTime)}/{formatTime(duration)}</span>
                                     </div>
                                 </div>
                                 <audio
                                     ref={audioRef}
-                                    src={audioUrl}
+                                    src={audioUrl || undefined}
                                     preload="metadata"
+                                    onError={(e) => {
+                                        console.error('Audio element error event:', e);
+                                        console.error('Audio error details:', e.target.error);
+                                        setSuccessMessage('Error loading audio. Please try again.');
+                                        setIsSuccess(false);
+                                    }}
+                                    onLoadedMetadata={(e) => {
+                                        console.log('Audio metadata loaded successfully');
+                                        console.log('Audio duration from event:', e.target.duration);
+                                        if (audioRef.current && !isNaN(audioRef.current.duration)) {
+                                            setDuration(audioRef.current.duration);
+                                        }
+                                    }}
+                                    onDurationChange={(e) => {
+                                        console.log('Duration changed:', e.target.duration);
+                                        if (!isNaN(e.target.duration) && e.target.duration > 0) {
+                                            // Validate duration before setting it
+                                            if (e.target.duration > 86400) {
+                                                console.error('Invalid duration detected in event:', e.target.duration);
+                                                return;
+                                            }
+                                            setDuration(e.target.duration);
+                                        }
+                                    }}
                                 />
                             </div>
                         </div>

@@ -1,5 +1,11 @@
 backend/app/__pycache__
 backend/.env
 frontend/podcraft/node_modules
-backend/
-backend/app/agents/__pycache__
+backend/.venv/
+backend/venv/
+/.DS_Store
+frontend/podcraft/.DS_Store
+backend/.DS_Store
+frontend/.DS_Store
+backend/temp_audio/*
+backend/app/agents/__pycache__/
