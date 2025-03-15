@@ -151,21 +151,28 @@ span.info-icon {
     background: #4a4b63;
     cursor: not-allowed;
     transform: none;
+    opacity: 0.6;
 }
 
 .prompt-submit:disabled:hover {
     background: #4a4b63;
     transform: none;
+    box-shadow: none;
 }
 
 .prompt-submit:hover {
     background: #4f46e5;
     transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
 .prompt-submit svg {
-    font-size: 1.2rem;
+    font-size: 1.5rem;
     color: white;
+}
+
+.prompt-submit:disabled svg {
+    opacity: 0.6;
 }
 
 /* Light theme adjustments */
@@ -356,16 +363,40 @@ span.info-icon {
 
 .dropdown-options {
     position: absolute;
-    top: calc(100% + 0.5rem);
+    top: 100%;
     left: 0;
     right: 0;
-    background: rgba(0, 0, 0, 0.95);
-    border: 1px solid rgba(99, 102, 241, 0.2);
+    background: rgba(17, 17, 17, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
-    overflow: hidden;
+    padding: 0.5rem 0;
+    margin-top: 0.5rem;
+    max-height: 300px;
+    overflow-y: auto;
     z-index: 10;
-    backdrop-filter: blur(12px);
     animation: dropdownFade 0.2s ease;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(99, 102, 241, 0.3) rgba(255, 255, 255, 0.05);
+}
+
+.dropdown-options::-webkit-scrollbar {
+    width: 6px;
+}
+
+.dropdown-options::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+.dropdown-options::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.3);
+    border-radius: 3px;
+    transition: background 0.3s ease;
+}
+
+.dropdown-options::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.5);
 }
 
 .dropdown-option {
@@ -405,7 +436,20 @@ span.info-icon {
 
 .light .dropdown-options {
     background: rgba(255, 255, 255, 0.95);
-    border-color: rgba(99, 102, 241, 0.2);
+    border-color: rgba(0, 0, 0, 0.1);
+    scrollbar-color: rgba(99, 102, 241, 0.3) rgba(0, 0, 0, 0.05);
+}
+
+.light .dropdown-options::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.light .dropdown-options::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.3);
+}
+
+.light .dropdown-options::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.5);
 }
 
 .light .dropdown-option {
@@ -892,7 +936,7 @@ span.info-icon {
 .generating-indicator {
     position: absolute;
     bottom: 0px;
-    right: -80px;
+    right: 15%;
     transform: translateX(-50%);
     background: rgba(99, 102, 241, 0.1);
     backdrop-filter: blur(4px);
@@ -903,7 +947,7 @@ span.info-icon {
     flex-direction: column;
     align-items: center;
     gap: 0.5rem;
-    width: 90px;
+    /* width: 90px; */
 }
 
 .generating-text {

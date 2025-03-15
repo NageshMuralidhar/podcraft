@@ -7,4 +7,5 @@ db = client.podcraft
 
 # Collections
 users = db.users
-podcasts = db.podcasts 
+podcasts = db.podcasts
+agents = db.agents  # New collection for storing agent configurations 
