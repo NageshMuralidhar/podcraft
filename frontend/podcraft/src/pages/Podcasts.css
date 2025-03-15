@@ -173,6 +173,7 @@
     border-radius: 3px;
     overflow: hidden;
     position: relative;
+    cursor: pointer;
 }
 
 .progress {
