@@ -1,5 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List, Dict
+from datetime import datetime
 
 class UserCreate(BaseModel):
     username: str
@@ -78,3 +79,17 @@ class WorkflowResponse(BaseModel):
     user_id: str
     created_at: Optional[str]
     updated_at: Optional[str] 
+
+class TextPodcastRequest(BaseModel):
+    text: str 
+    voice_id: str 
+    emotion: str
+    speed: float
+
+class TextPodcastResponse(BaseModel):
+    audio_url: str
+    duration: Optional[float]
+    status: str
+    error: Optional[str]
+    updated_at: Optional[str] 
+
