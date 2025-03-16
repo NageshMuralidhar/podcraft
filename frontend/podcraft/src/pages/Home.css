@@ -217,13 +217,13 @@ span.info-icon {
     }
 }
 
-.studio-redirect {
+.workflows-redirect {
     display: flex;
     justify-content: flex-end;
     margin-top: 0.5rem;
 }
 
-.studio-button {
+.workflows-button {
     background: transparent;
     color: #6366f1;
     border: 1px solid #6366f1;
@@ -239,17 +239,17 @@ span.info-icon {
     backdrop-filter: blur(8px);
 }
 
-.studio-button:hover {
+.workflows-button:hover {
     background: rgba(99, 102, 241, 0.1);
     transform: translateY(-1px);
 }
 
-.studio-button:active {
+.workflows-button:active {
     transform: translateY(0);
 }
 
 /* Light theme adjustments */
-.light .studio-button {
+.light .workflows-button {
     background: transparent;
     color: #6366f1;
     border-color: #6366f1;

@@ -13,6 +13,7 @@ import { TiFlowMerge } from "react-icons/ti";
 import { RiRobot2Fill } from "react-icons/ri";
 import { BsToggle2Off, BsToggle2On } from "react-icons/bs";
 import AgentModal from './AgentModal';
+import Toast from './Toast';
 import 'reactflow/dist/style.css';
 import './WorkflowEditor.css';
 
@@ -53,12 +54,13 @@ const WorkflowEditor = () => {
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
     const [workflowName, setWorkflowName] = useState('');
-    const [isEditingName, setIsEditingName] = useState(true);
+    const [isEditingName, setIsEditingName] = useState(workflowId === '-1');
     const [tempWorkflowName, setTempWorkflowName] = useState('');
     const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
     const [agents, setAgents] = useState(DEFAULT_AGENTS);
     const [isLoadingAgents, setIsLoadingAgents] = useState(false);
     const [selectedAgent, setSelectedAgent] = useState(null);
+    const [toast, setToast] = useState(null);
     const [isInsightsEnabled, setIsInsightsEnabled] = useState(false);
     const [podcastText, setPodcastText] = useState('');
     const [selectedVoice, setSelectedVoice] = useState('alloy');
@@ -94,12 +96,61 @@ const WorkflowEditor = () => {
         [setEdges]
     );
 
-    const handleSaveWorkflow = () => {
+    const handleSaveWorkflow = async () => {
         if (!workflowName.trim()) {
-            console.log('Please enter a workflow name');
+            setToast({
+                message: 'Please enter a workflow name',
+                type: 'error'
+            });
             return;
         }
-        console.log('Save workflow clicked', { name: workflowName, nodes, edges });
+
+        try {
+            const token = localStorage.getItem('token');
+            const workflowData = {
+                name: workflowName,
+                description: '',
+                nodes: nodes,
+                edges: edges
+            };
+
+            const url = workflowId === '-1'
+                ? 'http://localhost:8000/api/workflows'
+                : `http://localhost:8000/api/workflows/${workflowId}`;
+
+            const method = workflowId === '-1' ? 'POST' : 'PUT';
+
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(workflowData)
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to save workflow');
+            }
+
+            const savedWorkflow = await response.json();
+
+            // Update workflowId if this was a new workflow
+            if (workflowId === '-1') {
+                navigate(`/workflows/workflow/${savedWorkflow.id}`, { replace: true });
+            }
+
+            setToast({
+                message: 'Workflow saved successfully!',
+                type: 'success'
+            });
+        } catch (error) {
+            console.error('Error saving workflow:', error);
+            setToast({
+                message: 'Failed to save workflow',
+                type: 'error'
+            });
+        }
     };
 
     const handleClearWorkflow = () => {
@@ -183,6 +234,37 @@ const WorkflowEditor = () => {
         setSelectedAgent(null);
         loadCustomAgents(); // Reload agents after modal closes
     };
+
+    // Load workflow data if editing an existing workflow
+    useEffect(() => {
+        const loadWorkflow = async () => {
+            if (workflowId === '-1') return; // Skip loading for new workflows
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`http://localhost:8000/api/workflows/${workflowId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load workflow');
+                }
+
+                const workflow = await response.json();
+                setWorkflowName(workflow.name);
+                setTempWorkflowName(workflow.name);
+                if (workflow.nodes) setNodes(workflow.nodes);
+                if (workflow.edges) setEdges(workflow.edges);
+            } catch (error) {
+                console.error('Error loading workflow:', error);
+                alert('Failed to load workflow');
+            }
+        };
+
+        loadWorkflow();
+    }, [workflowId]);
 
     // Initial load of agents
     useEffect(() => {
@@ -292,7 +374,7 @@ const WorkflowEditor = () => {
         <div className="editor-container">
             <div className="editor-header">
                 <h1>Build out a workflow for your podcast generation <TiFlowMerge /></h1>
-                <button className="back-button" onClick={() => navigate('/studio')}>
+                <button className="back-button" onClick={() => navigate('/workflows')}>
                     <FaArrowLeft /> Back to Workflows
                 </button>
             </div>
@@ -523,6 +605,15 @@ const WorkflowEditor = () => {
                 onClose={handleAgentModalClose}
                 editAgent={selectedAgent}
             />
+            {toast && (
+                <div className="toast-container">
+                    <Toast
+                        message={toast.message}
+                        type={toast.type}
+                        onClose={() => setToast(null)}
+                    />
+                </div>
+            )}
         </div>
     );
 };
