@@ -1,5 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List, Dict
+from datetime import datetime
 
 class UserCreate(BaseModel):
     username: str
@@ -60,4 +61,16 @@ class PodcastResponse(BaseModel):
     podcast_id: str
     audio_url: Optional[str]
     topic: str
-    error: Optional[str] 
+    error: Optional[str]
+
+class TextPodcastRequest(BaseModel):
+    text: str = Field(..., description="The text content to convert into a podcast")
+    voice_id: str = Field(..., description="Voice ID for the speaker")
+    emotion: str = Field("neutral", description="Emotion for the voice (e.g., neutral, happy, sad)")
+    speed: float = Field(1.0, description="Speed of speech (0.5 to 2.0)")
+
+class TextPodcastResponse(BaseModel):
+    audio_url: str = Field(..., description="URL to access the generated audio")
+    duration: Optional[float] = Field(None, description="Duration of the generated audio in seconds")
+    status: str = Field("completed", description="Status of the podcast generation")
+    error: Optional[str] = Field(None, description="Error message if generation failed") 
