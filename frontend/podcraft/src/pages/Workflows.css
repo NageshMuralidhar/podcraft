@@ -1,18 +1,18 @@
-.studio-container {
+.workflows-container {
     width: 100%;
     height: calc(100vh - 5rem);
     padding: 1rem;
     backdrop-filter: blur(10rem);
 }
 
-.studio-header {
+.workflows-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin: 0 1rem 2rem 1rem;
 }
 
-.studio-header h1 {
+.workflows-header h1 {
     font-size: 1.5rem;
     font-weight: 700;
     margin: 0;
@@ -206,4 +206,42 @@
 .light .flow-wrapper .react-flow__minimap {
     background: rgba(255, 255, 255, 0.5);
     border-color: rgba(0, 0, 0, 0.1);
+}
+
+.loading-indicator {
+    text-align: center;
+    padding: 2rem;
+    font-size: 1.2rem;
+    color: #666;
+}
+
+.error-message {
+    text-align: center;
+    padding: 2rem;
+    color: #dc3545;
+    background-color: #f8d7da;
+    border-radius: 4px;
+    margin: 1rem;
+}
+
+.no-workflows {
+    text-align: center;
+    padding: 3rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    margin: 1rem;
+    color: #6c757d;
+}
+
+.workflow-meta {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.date {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    background-color: #e9ecef;
+    border-radius: 4px;
 }

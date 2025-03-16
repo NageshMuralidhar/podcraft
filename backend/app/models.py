@@ -60,4 +60,21 @@ class PodcastResponse(BaseModel):
     podcast_id: str
     audio_url: Optional[str]
     topic: str
-    error: Optional[str] 
+    error: Optional[str]
+
+# New Workflow Models
+class WorkflowCreate(BaseModel):
+    name: str
+    description: str
+    nodes: List[Dict]
+    edges: List[Dict]
+
+class WorkflowResponse(BaseModel):
+    id: str
+    name: str
+    description: str
+    nodes: List[Dict]
+    edges: List[Dict]
+    user_id: str
+    created_at: Optional[str]
+    updated_at: Optional[str] 
