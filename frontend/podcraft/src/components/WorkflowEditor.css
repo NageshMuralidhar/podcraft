@@ -531,6 +531,13 @@
 
 .toggle-insights:hover {
     color: #818cf8;
+    margin: 0 0 1rem 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    background: linear-gradient(0.25turn, #999, #fff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }
 
 .insights-content {

@@ -529,7 +529,6 @@ async def update_agent(agent_id: str, agent: AgentCreate, current_user: dict = D
         logger.error(f"Error updating agent: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to update agent: {str(e)}") 
     
-
 @app.post("/generate-text-podcast", response_model=TextPodcastResponse)
 async def generate_text_podcast(request: TextPodcastRequest, current_user: dict = Depends(get_current_user)):
     """Generate a podcast from text input with a single voice and emotion."""
@@ -587,7 +586,8 @@ async def generate_text_podcast(request: TextPodcastRequest, current_user: dict 
             status="failed",
             error=str(e)
         )
-
+  
+  
 @app.get("/api/workflows", response_model=List[WorkflowResponse])
 async def list_workflows(current_user: dict = Depends(get_current_user)):
     try:

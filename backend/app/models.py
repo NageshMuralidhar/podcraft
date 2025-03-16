@@ -61,7 +61,7 @@ class PodcastResponse(BaseModel):
     podcast_id: str
     audio_url: Optional[str]
     topic: str
-    error: Optional[str] 
+    error: Optional[str]
 
 # New Workflow Models
 class WorkflowCreate(BaseModel):
@@ -91,3 +91,5 @@ class TextPodcastResponse(BaseModel):
     duration: Optional[float]
     status: str
     error: Optional[str]
+    updated_at: Optional[str] 
+
