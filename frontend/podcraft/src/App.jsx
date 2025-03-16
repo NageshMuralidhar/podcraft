@@ -12,7 +12,7 @@ import { PiGooglePodcastsLogo } from "react-icons/pi";
 
 import Home from './pages/Home'
 import Podcasts from './pages/Podcasts'
-import Studio from './pages/Studio'
+import Workflows from './pages/Workflows'
 import WorkflowEditor from './components/WorkflowEditor'
 import UserModal from './components/UserModal'
 import Toast from './components/Toast'
@@ -39,7 +39,7 @@ function App() {
               'Authorization': `Bearer ${token}`
             }
           });
-          
+
           if (response.ok) {
             setIsAuthenticated(true);
             console.log('User authenticated from stored token');
@@ -54,7 +54,7 @@ function App() {
           // Don't remove token on network errors to allow offline access
         }
       };
-      
+
       validateToken();
     }
   }, []);
@@ -154,9 +154,9 @@ function App() {
                     <span className={`link-text ${!isOpen && 'hidden'}`}>Podcasts</span>
                   </Link>
 
-                  <Link to="/studio" className="nav-link">
+                  <Link to="/workflows" className="nav-link">
                     <FaMicrophoneAlt />
-                    <span className={`link-text ${!isOpen && 'hidden'}`}>Studio</span>
+                    <span className={`link-text ${!isOpen && 'hidden'}`}>Workflows</span>
                   </Link>
 
                   <div className="nav-divider"></div>
@@ -219,8 +219,8 @@ function App() {
               <Routes>
                 <Route path="/home" element={<Home />} />
                 <Route path="/podcasts" element={<Podcasts />} />
-                <Route path="/studio" element={<Studio />} />
-                <Route path="/studio/workflow/:workflowId" element={<WorkflowEditor />} />
+                <Route path="/workflows" element={<Workflows />} />
+                <Route path="/workflows/workflow/:workflowId" element={<WorkflowEditor />} />
                 <Route path="/" element={<Navigate to="/home" replace />} />
               </Routes>
             )}

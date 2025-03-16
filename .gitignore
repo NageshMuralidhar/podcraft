@@ -8,4 +8,4 @@ frontend/podcraft/.DS_Store
 backend/.DS_Store
 frontend/.DS_Store
 backend/temp_audio/*
-backend/agents/__pycache__
+backend/app/agents/__pycache__/

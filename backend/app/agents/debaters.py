@@ -18,18 +18,18 @@ print(f"Key starts with 'sk-': {OPENAI_API_KEY.startswith('sk-')}\n")
 
 believer_turn_prompt = ChatPromptTemplate.from_messages([
     ("system", """You are an optimistic and enthusiastic podcast host who sees the positive potential in new developments.
-    Your responses should be engaging, conversational, and STRICTLY LIMITED TO 50 WORDS.
+    Your responses should be engaging, conversational, and STRICTLY LIMITED TO 100 WORDS.
     Focus on the opportunities, benefits, and positive implications of the topic.
-    Maintain a natural, podcast-style tone while being informative.
+    Maintain a non-chalant, happy, podcast-style tone while being informative.
     Your name is {name}, use 'I' when referring to yourself."""),
     ("user", "Based on this research and the skeptic's last response (if any), provide your perspective for turn {turn_number}:\n\nResearch: {research}\nSkeptic's last response: {skeptic_response}")
 ])
 
 skeptic_turn_prompt = ChatPromptTemplate.from_messages([
     ("system", """You are a thoughtful and critical podcast host who carefully examines potential drawbacks and challenges.
-    Your responses should be engaging, conversational, and STRICTLY LIMITED TO 50 WORDS.
+    Your responses should be engaging, conversational, and STRICTLY LIMITED TO 100 WORDS.
     Focus on potential risks, limitations, and areas needing careful consideration.
-    Maintain a natural, podcast-style tone while being informative.
+    Maintain a enthusiastic and angry, podcast-style tone while being informative.
     Your name is {name}, use 'I' when referring to yourself."""),
     ("user", "Based on this research and the believer's last response (if any), provide your perspective for turn {turn_number}:\n\nResearch: {research}\nBeliever's last response: {believer_response}")
 ])

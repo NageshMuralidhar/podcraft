@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ReactFlow, {
     MiniMap,
@@ -8,11 +8,13 @@ import ReactFlow, {
     useEdgesState,
     addEdge,
 } from 'reactflow';
-import { FaArrowLeft } from 'react-icons/fa';
+import { FaArrowLeft, FaSave, FaTrash, FaPlay, FaTimes, FaPencilAlt, FaCheck, FaPause, FaVolumeUp, FaUserCog } from 'react-icons/fa';
+import { TiFlowMerge } from "react-icons/ti";
+import { RiRobot2Fill } from "react-icons/ri";
+import AgentModal from './AgentModal';
+import Toast from './Toast';
 import 'reactflow/dist/style.css';
 import './WorkflowEditor.css';
-import { TiFlowMerge } from "react-icons/ti";
-
 
 const initialNodes = [
     {
@@ -39,41 +41,351 @@ const initialEdges = [
     { id: 'e2-3', source: '2', target: '3' },
 ];
 
+const DEFAULT_AGENTS = [
+    { id: 'researcher', name: 'Research Agent', status: 'Default', isDefault: true },
+    { id: 'believer', name: 'Believer Agent', status: 'Default', isDefault: true },
+    { id: 'skeptic', name: 'Skeptic Agent', status: 'Default', isDefault: true }
+];
+
 const WorkflowEditor = () => {
     const { workflowId } = useParams();
     const navigate = useNavigate();
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+    const [workflowName, setWorkflowName] = useState('');
+    const [isEditingName, setIsEditingName] = useState(workflowId === '-1');
+    const [tempWorkflowName, setTempWorkflowName] = useState('');
+    const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
+    const [agents, setAgents] = useState(DEFAULT_AGENTS);
+    const [isLoadingAgents, setIsLoadingAgents] = useState(false);
+    const [selectedAgent, setSelectedAgent] = useState(null);
+    const [toast, setToast] = useState(null);
 
     const onConnect = useCallback(
         (params) => setEdges((eds) => addEdge(params, eds)),
         [setEdges]
     );
 
+    const handleSaveWorkflow = async () => {
+        if (!workflowName.trim()) {
+            setToast({
+                message: 'Please enter a workflow name',
+                type: 'error'
+            });
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('token');
+            const workflowData = {
+                name: workflowName,
+                description: '',
+                nodes: nodes,
+                edges: edges
+            };
+
+            const url = workflowId === '-1'
+                ? 'http://localhost:8000/api/workflows'
+                : `http://localhost:8000/api/workflows/${workflowId}`;
+
+            const method = workflowId === '-1' ? 'POST' : 'PUT';
+
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(workflowData)
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to save workflow');
+            }
+
+            const savedWorkflow = await response.json();
+
+            // Update workflowId if this was a new workflow
+            if (workflowId === '-1') {
+                navigate(`/workflows/workflow/${savedWorkflow.id}`, { replace: true });
+            }
+
+            setToast({
+                message: 'Workflow saved successfully!',
+                type: 'success'
+            });
+        } catch (error) {
+            console.error('Error saving workflow:', error);
+            setToast({
+                message: 'Failed to save workflow',
+                type: 'error'
+            });
+        }
+    };
+
+    const handleClearWorkflow = () => {
+        setNodes([]);
+        setEdges([]);
+    };
+
+    const handleExecuteWorkflow = () => {
+        console.log('Execute workflow clicked');
+    };
+
+    const handleEditName = () => {
+        setTempWorkflowName(workflowName);
+        setIsEditingName(true);
+    };
+
+    const handleSaveName = () => {
+        if (tempWorkflowName.trim()) {
+            setWorkflowName(tempWorkflowName.trim());
+            setIsEditingName(false);
+        }
+    };
+
+    const handleCancelNameEdit = () => {
+        setTempWorkflowName(workflowName);
+        setIsEditingName(false);
+    };
+
+    const handleCreateAgents = () => {
+        setIsAgentModalOpen(true);
+    };
+
+    const handleAgentClick = (agent) => {
+        if (!agent.isDefault) {
+            setSelectedAgent(agent);
+            setIsAgentModalOpen(true);
+        }
+    };
+
+    // Load custom agents
+    const loadCustomAgents = async () => {
+        try {
+            setIsLoadingAgents(true);
+            const token = localStorage.getItem('token');
+            if (!token) {
+                console.error('No token found');
+                return;
+            }
+
+            const response = await fetch('http://localhost:8000/agents', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to load agents');
+            }
+
+            const customAgents = await response.json();
+            const formattedCustomAgents = customAgents.map(agent => ({
+                id: agent.agent_id,
+                name: agent.name,
+                voice_id: agent.voice_id,
+                status: 'Ready',
+                isDefault: false
+            }));
+
+            // Combine default and custom agents
+            setAgents([...DEFAULT_AGENTS, ...formattedCustomAgents]);
+        } catch (error) {
+            console.error('Error loading agents:', error);
+        } finally {
+            setIsLoadingAgents(false);
+        }
+    };
+
+    // Load agents when modal closes
+    const handleAgentModalClose = () => {
+        setIsAgentModalOpen(false);
+        setSelectedAgent(null);
+        loadCustomAgents(); // Reload agents after modal closes
+    };
+
+    // Load workflow data if editing an existing workflow
+    useEffect(() => {
+        const loadWorkflow = async () => {
+            if (workflowId === '-1') return; // Skip loading for new workflows
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`http://localhost:8000/api/workflows/${workflowId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load workflow');
+                }
+
+                const workflow = await response.json();
+                setWorkflowName(workflow.name);
+                setTempWorkflowName(workflow.name);
+                if (workflow.nodes) setNodes(workflow.nodes);
+                if (workflow.edges) setEdges(workflow.edges);
+            } catch (error) {
+                console.error('Error loading workflow:', error);
+                alert('Failed to load workflow');
+            }
+        };
+
+        loadWorkflow();
+    }, [workflowId]);
+
+    // Initial load of agents
+    useEffect(() => {
+        loadCustomAgents();
+    }, []);
+
     return (
         <div className="editor-container">
             <div className="editor-header">
-                <h1> Build out a workflow for your podcast generation <TiFlowMerge /></h1>
-                <button className="back-button" onClick={() => navigate('/studio')}>
+                <h1>Build out a workflow for your podcast generation <TiFlowMerge /></h1>
+                <button className="back-button" onClick={() => navigate('/workflows')}>
                     <FaArrowLeft /> Back to Workflows
                 </button>
             </div>
-            <div className="flow-wrapper">
-                <ReactFlow
-                    nodes={nodes}
-                    edges={edges}
-                    onNodesChange={onNodesChange}
-                    onEdgesChange={onEdgesChange}
-                    onConnect={onConnect}
-                    fitView
-                >
-                    <Background />
-                    <Controls />
-                    <MiniMap />
-                </ReactFlow>
+            <div className="editor-content">
+                <div className="editor-main">
+                    <div className="flow-controls">
+                        <div className="workflow-name-container">
+                            {isEditingName ? (
+                                <>
+                                    <input
+                                        type="text"
+                                        value={tempWorkflowName}
+                                        onChange={(e) => setTempWorkflowName(e.target.value)}
+                                        placeholder="Enter workflow name..."
+                                        className="workflow-name-input"
+                                    />
+                                    <button
+                                        className="name-action-button save"
+                                        onClick={handleSaveName}
+                                        title="Save name"
+                                    >
+                                        <FaCheck />
+                                    </button>
+                                    <button
+                                        className="name-action-button cancel"
+                                        onClick={handleCancelNameEdit}
+                                        title="Cancel"
+                                    >
+                                        <FaTimes />
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="workflow-name-display">
+                                        {workflowName || 'Untitled Workflow'}
+                                    </div>
+                                    <button
+                                        className="name-action-button edit"
+                                        onClick={handleEditName}
+                                        title="Edit name"
+                                    >
+                                        <FaPencilAlt />
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                        <button className="flow-button save-workflow" onClick={handleSaveWorkflow}>
+                            <FaSave />
+                            <span>Save</span>
+                        </button>
+                        <button className="flow-button clear-workflow" onClick={handleClearWorkflow}>
+                            <FaTrash />
+                            <span>Clear</span>
+                        </button>
+                        <button className="flow-button execute-workflow" onClick={handleExecuteWorkflow}>
+                            <FaPlay />
+                            <span>Run</span>
+                        </button>
+                    </div>
+                    <div className="flow-wrapper">
+                        <ReactFlow
+                            nodes={nodes}
+                            edges={edges}
+                            onNodesChange={onNodesChange}
+                            onEdgesChange={onEdgesChange}
+                            onConnect={onConnect}
+                            fitView
+                        >
+                            <Background />
+                            <Controls />
+                            <MiniMap />
+                        </ReactFlow>
+                    </div>
+                </div>
+                <div className="editor-insights">
+                    <h2>Workflow Insights</h2>
+                    <div className="insights-content">
+                        <p>Real-time analytics and insights about your workflow will appear here</p>
+                    </div>
+                </div>
+                <div className="editor-sidebar">
+                    <div className="sidebar-card agents-view">
+                        <h3><RiRobot2Fill /> Create your agents</h3>
+                        <div className="agents-list">
+                            {isLoadingAgents ? (
+                                <div className="loading-agents">Loading agents...</div>
+                            ) : (
+                                agents.map((agent) => (
+                                    <div
+                                        key={agent.id}
+                                        className={`agent-item ${agent.isDefault ? 'default' : 'custom'}`}
+                                        onClick={() => handleAgentClick(agent)}
+                                        style={{ cursor: agent.isDefault ? 'default' : 'pointer' }}
+                                    >
+                                        <span className="agent-name">{agent.name}</span>
+                                        <span className="agent-status">{agent.status}</span>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                        <button
+                            className="create-agents-btn"
+                            onClick={() => setIsAgentModalOpen(true)}
+                            type="button"
+                        >
+                            <FaUserCog /> Create your own agents
+                        </button>
+                        <p>Design and configure AI agents with unique personalities and roles for your podcast</p>
+                    </div>
+                    <div className="sidebar-card podcast-audio-view">
+                        <h3><FaVolumeUp /> Podcast Preview</h3>
+                        <div className="audio-player">
+                            <div className="player-controls">
+                                <button className="play-button">
+                                    <FaPlay />
+                                </button>
+                                <div className="progress-bar">
+                                    <div className="progress"></div>
+                                </div>
+                                <div className="time-display">0:00 / 0:00</div>
+                            </div>
+                        </div>
+                        <p>Preview your generated podcast audio</p>
+                    </div>
+                </div>
             </div>
+            <AgentModal
+                isOpen={isAgentModalOpen}
+                onClose={handleAgentModalClose}
+                editAgent={selectedAgent}
+            />
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
         </div>
     );
 };
 
-export default WorkflowEditor; 
+export default WorkflowEditor;
