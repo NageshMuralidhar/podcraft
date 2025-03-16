@@ -10,3 +10,4 @@ users = db.users
 podcasts = db.podcasts
 agents = db.agents  # New collection for storing agent configurations
 workflows = db.workflows  # Collection for storing workflow configurations 
+workflows = db.workflows  # Collection for storing workflow configurations 

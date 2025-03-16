@@ -9,6 +9,7 @@ import { ImPodcast } from "react-icons/im";
 import { RiChatVoiceAiFill } from "react-icons/ri";
 import { FaUser, FaSignOutAlt } from "react-icons/fa";
 import { PiGooglePodcastsLogo } from "react-icons/pi";
+import { TiFlowSwitch } from "react-icons/ti";
 
 import Home from './pages/Home'
 import Podcasts from './pages/Podcasts'
@@ -155,7 +156,7 @@ function App() {
                   </Link>
 
                   <Link to="/workflows" className="nav-link">
-                    <FaMicrophoneAlt />
+                    <TiFlowSwitch />
                     <span className={`link-text ${!isOpen && 'hidden'}`}>Workflows</span>
                   </Link>
 
