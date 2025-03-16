@@ -61,7 +61,7 @@ class PodcastResponse(BaseModel):
     podcast_id: str
     audio_url: Optional[str]
     topic: str
-    error: Optional[str]
+    error: Optional[str] 
 
 # New Workflow Models
 class WorkflowCreate(BaseModel):
@@ -79,16 +79,15 @@ class WorkflowResponse(BaseModel):
     user_id: str
     created_at: Optional[str]
     updated_at: Optional[str] 
-    error: Optional[str]
 
 class TextPodcastRequest(BaseModel):
-    text: str = Field(..., description="The text content to convert into a podcast")
-    voice_id: str = Field(..., description="Voice ID for the speaker")
-    emotion: str = Field("neutral", description="Emotion for the voice (e.g., neutral, happy, sad)")
-    speed: float = Field(1.0, description="Speed of speech (0.5 to 2.0)")
+    text: str 
+    voice_id: str 
+    emotion: str
+    speed: float
 
 class TextPodcastResponse(BaseModel):
-    audio_url: str = Field(..., description="URL to access the generated audio")
-    duration: Optional[float] = Field(None, description="Duration of the generated audio in seconds")
-    status: str = Field("completed", description="Status of the podcast generation")
-    error: Optional[str] = Field(None, description="Error message if generation failed") 
+    audio_url: str
+    duration: Optional[float]
+    status: str
+    error: Optional[str]
