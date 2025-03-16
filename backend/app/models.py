@@ -19,6 +19,28 @@ class UserUpdate(BaseModel):
 class UserResponse(BaseModel):
     username: str
 
+class AgentCreate(BaseModel):
+    name: str
+    voice_id: str
+    voice_name: str
+    voice_description: str
+    speed: float
+    pitch: float
+    volume: float
+    output_format: str
+
+class AgentResponse(BaseModel):
+    agent_id: str
+    name: str
+    voice_id: str
+    voice_name: str
+    voice_description: str
+    speed: float
+    pitch: float
+    volume: float
+    output_format: str
+    user_id: str
+
 class PodcastRequest(BaseModel):
     topic: str
     believer_voice_id: str
@@ -38,4 +60,21 @@ class PodcastResponse(BaseModel):
     podcast_id: str
     audio_url: Optional[str]
     topic: str
-    error: Optional[str] 
+    error: Optional[str]
+
+# New Workflow Models
+class WorkflowCreate(BaseModel):
+    name: str
+    description: str
+    nodes: List[Dict]
+    edges: List[Dict]
+
+class WorkflowResponse(BaseModel):
+    id: str
+    name: str
+    description: str
+    nodes: List[Dict]
+    edges: List[Dict]
+    user_id: str
+    created_at: Optional[str]
+    updated_at: Optional[str] 

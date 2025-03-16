@@ -79,7 +79,7 @@ const Home = () => {
             const updateTime = () => {
                 setCurrentTime(audio.currentTime);
             };
-            
+
             const updateDuration = () => {
                 if (!isNaN(audio.duration) && audio.duration > 0) {
                     // Validate duration before setting it
@@ -134,10 +134,10 @@ const Home = () => {
     useEffect(() => {
         if (audioUrl && audioRef.current) {
             console.log('Audio URL changed, checking duration...');
-            
+
             // Reset current time and check duration
             setCurrentTime(0);
-            
+
             // Create a function to check duration periodically
             const checkDuration = () => {
                 if (audioRef.current && !isNaN(audioRef.current.duration) && audioRef.current.duration > 0) {
@@ -152,7 +152,7 @@ const Home = () => {
                 }
                 return false;
             };
-            
+
             // Try immediately
             if (!checkDuration()) {
                 // If not successful, try again after a short delay
@@ -171,7 +171,7 @@ const Home = () => {
                         }
                     }
                 }, 1000);
-                
+
                 return () => clearTimeout(timerId);
             }
         }
@@ -181,17 +181,17 @@ const Home = () => {
         try {
             const token = localStorage.getItem('token');
             if (!token) return;
-            
+
             // Fetch the most recent podcast using the new endpoint
             const response = await fetch('http://localhost:8000/podcasts/latest', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
             });
-            
+
             if (response.ok) {
                 const data = await response.json();
-                
+
                 // Check if we got a podcast (not just a message)
                 if (data && data.audio_url) {
                     // Set the audio URL directly from the response
@@ -228,7 +228,7 @@ const Home = () => {
                 setIsPlaying(false);
             } else {
                 const playPromise = audioRef.current.play();
-                
+
                 if (playPromise !== undefined) {
                     playPromise
                         .then(() => {
@@ -245,7 +245,7 @@ const Home = () => {
 
     const handleSeek = (e) => {
         if (!audioRef.current || !audioUrl) return;
-        
+
         // Check if duration is valid
         if (isNaN(audioRef.current.duration) || audioRef.current.duration <= 0) {
             console.warn('Cannot seek: Invalid audio duration');
@@ -272,7 +272,7 @@ const Home = () => {
         if (isNaN(time) || time === null || time === undefined || time < 0) {
             return '0:00';
         }
-        
+
         // Cap extremely large values (likely errors)
         if (time > 86400) { // More than 24 hours
             console.warn('Extremely large duration detected:', time);
@@ -407,10 +407,10 @@ const Home = () => {
     const calculateMP3Duration = async (url) => {
         try {
             console.log('Attempting to manually calculate MP3 duration for:', url);
-            
+
             // Create a temporary audio element
             const tempAudio = new Audio();
-            
+
             // Create a promise to handle the duration calculation
             const durationPromise = new Promise((resolve, reject) => {
                 // Set up event listeners
@@ -424,27 +424,27 @@ const Home = () => {
                         resolve(300); // Default to 5 minutes (300 seconds)
                     }
                 });
-                
+
                 tempAudio.addEventListener('error', (e) => {
                     console.error('Error calculating duration:', e);
                     reject(e);
                 });
-                
+
                 // Set a timeout in case the metadata never loads
                 setTimeout(() => {
                     console.warn('Duration calculation timed out, using default');
                     resolve(300); // Default to 5 minutes
                 }, 5000);
             });
-            
+
             // Start loading the audio
             tempAudio.src = url;
             tempAudio.load();
-            
+
             // Wait for the duration to be calculated
             const calculatedDuration = await durationPromise;
             return calculatedDuration;
-            
+
         } catch (error) {
             console.error('Error in duration calculation:', error);
             return 300; // Default to 5 minutes on error
@@ -658,16 +658,16 @@ const Home = () => {
                                     >
                                         {isPlaying ? <FaPause /> : <FaPlay />}
                                     </button>
-                                    <div 
-                                        className="player-progress" 
+                                    <div
+                                        className="player-progress"
                                         onClick={audioUrl ? handleSeek : undefined}
                                         style={{ cursor: audioUrl ? 'pointer' : 'not-allowed' }}
                                     >
                                         <div className="progress-bar">
                                             <div
                                                 className="progress"
-                                                style={{ 
-                                                    width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` 
+                                                style={{
+                                                    width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%`
                                                 }}
                                             />
                                         </div>
@@ -721,15 +721,19 @@ const Home = () => {
                             className="prompt-input"
                             disabled={isGenerating}
                         />
-                        <button type="submit" className="prompt-submit" disabled={isGenerating}>
+                        <button
+                            type="submit"
+                            className="prompt-submit"
+                            disabled={isGenerating || !prompt.trim()}
+                        >
                             <RiSendPlaneFill />
                         </button>
                     </form>
                 </div>
             </div>
-            <div className="studio-redirect">
-                <button onClick={() => navigate('/studio')} className="studio-button">
-                    Create in studio <FaArrowRight />
+            <div className="workflows-redirect">
+                <button onClick={() => navigate('/workflows')} className="workflows-button">
+                    Create in workflows <FaArrowRight />
                 </button>
             </div>
         </div>
