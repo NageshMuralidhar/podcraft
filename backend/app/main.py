@@ -11,7 +11,8 @@ import logging
 from .database import users, podcasts, agents
 from .models import (
     UserCreate, UserLogin, Token, UserUpdate, UserResponse,
-    PodcastRequest, PodcastResponse, AgentCreate, AgentResponse
+    PodcastRequest, PodcastResponse, AgentCreate, AgentResponse,
+    TextPodcastRequest, TextPodcastResponse
 )
 from .agents.researcher import research_topic, research_topic_stream
 from .agents.debaters import generate_debate, generate_debate_stream, chunk_text
@@ -49,7 +50,7 @@ os.makedirs("temp", exist_ok=True)
 os.makedirs("temp_audio", exist_ok=True)
 
 # Mount static directory for audio files
-app.mount("/audio", StaticFiles(directory="temp"), name="audio")
+app.mount("/audio", StaticFiles(directory="temp_audio"), name="audio")
 
 # Security
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -524,4 +525,62 @@ async def update_agent(agent_id: str, agent: AgentCreate, current_user: dict = D
         }
     except Exception as e:
         logger.error(f"Error updating agent: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to update agent: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Failed to update agent: {str(e)}")
+
+@app.post("/generate-text-podcast", response_model=TextPodcastResponse)
+async def generate_text_podcast(request: TextPodcastRequest, current_user: dict = Depends(get_current_user)):
+    """Generate a podcast from text input with a single voice and emotion."""
+    logger.info(f"Received text-based podcast generation request from user: {current_user['username']}")
+    
+    try:
+        # Create conversation block for the single voice
+        conversation_blocks = [
+            {
+                "name": "Voice",
+                "input": request.text,
+                "silence_before": 1,
+                "voice_id": request.voice_id,
+                "emotion": request.emotion,
+                "model": "tts-1",
+                "speed": request.speed,
+                "duration": 0
+            }
+        ]
+        
+        # Create podcast using TTS
+        result = await podcast_manager.create_podcast(
+            topic=f"Text Podcast {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+            research="Text-based podcast generation",
+            conversation_blocks=conversation_blocks,
+            believer_voice_id=request.voice_id,  # Using same voice for both since we only need one
+            skeptic_voice_id=request.voice_id,
+            user_id=str(current_user["_id"])
+        )
+        
+        if "error" in result:
+            logger.error(f"Error in podcast creation: {result['error']}")
+            return TextPodcastResponse(
+                audio_url="",
+                status="failed",
+                error=result["error"]
+            )
+        
+        # Create audio URL from the audio path
+        audio_url = f"/audio/{os.path.basename(os.path.dirname(result['audio_path']))}/final_podcast.mp3"
+        full_audio_url = f"http://localhost:8000{audio_url}"
+        
+        logger.info("Successfully generated text-based podcast")
+        
+        return TextPodcastResponse(
+            audio_url=full_audio_url,
+            duration=result.get("duration", 0),
+            status="completed"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error generating text-based podcast: {str(e)}", exc_info=True)
+        return TextPodcastResponse(
+            audio_url="",
+            status="failed",
+            error=str(e)
+        ) 

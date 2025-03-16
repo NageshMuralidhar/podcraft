@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ReactFlow, {
     MiniMap,
@@ -11,6 +11,7 @@ import ReactFlow, {
 import { FaArrowLeft, FaSave, FaTrash, FaPlay, FaTimes, FaPencilAlt, FaCheck, FaPause, FaVolumeUp, FaUserCog } from 'react-icons/fa';
 import { TiFlowMerge } from "react-icons/ti";
 import { RiRobot2Fill } from "react-icons/ri";
+import { BsToggle2Off, BsToggle2On } from "react-icons/bs";
 import AgentModal from './AgentModal';
 import 'reactflow/dist/style.css';
 import './WorkflowEditor.css';
@@ -58,6 +59,35 @@ const WorkflowEditor = () => {
     const [agents, setAgents] = useState(DEFAULT_AGENTS);
     const [isLoadingAgents, setIsLoadingAgents] = useState(false);
     const [selectedAgent, setSelectedAgent] = useState(null);
+    const [isInsightsEnabled, setIsInsightsEnabled] = useState(false);
+    const [podcastText, setPodcastText] = useState('');
+    const [selectedVoice, setSelectedVoice] = useState('alloy');
+    const [selectedEmotion, setSelectedEmotion] = useState('neutral');
+    const [voiceSpeed, setVoiceSpeed] = useState(1.0);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [audioUrl, setAudioUrl] = useState('');
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(0);
+    const [successMessage, setSuccessMessage] = useState('');
+    const audioRef = useRef(null);
+
+    const voices = [
+        { id: 'alloy', name: 'Alloy' },
+        { id: 'echo', name: 'Echo' },
+        { id: 'fable', name: 'Fable' },
+        { id: 'onyx', name: 'Onyx' },
+        { id: 'nova', name: 'Nova' },
+        { id: 'shimmer', name: 'Shimmer' }
+    ];
+
+    const emotions = [
+        { id: 'neutral', name: 'Neutral' },
+        { id: 'happy', name: 'Happy' },
+        { id: 'sad', name: 'Sad' },
+        { id: 'excited', name: 'Excited' },
+        { id: 'calm', name: 'Calm' }
+    ];
 
     const onConnect = useCallback(
         (params) => setEdges((eds) => addEdge(params, eds)),
@@ -159,6 +189,105 @@ const WorkflowEditor = () => {
         loadCustomAgents();
     }, []);
 
+    const handleGeneratePodcast = async () => {
+        if (!podcastText.trim()) {
+            console.log('Please enter some text');
+            return;
+        }
+
+        setIsGenerating(true);
+        setSuccessMessage('');
+        try {
+            const response = await fetch('http://localhost:8000/generate-text-podcast', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({
+                    text: podcastText,
+                    voice_id: selectedVoice,
+                    emotion: selectedEmotion,
+                    speed: voiceSpeed
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Failed to generate podcast');
+            }
+
+            const data = await response.json();
+            console.log('Podcast generated:', data);
+            
+            if (data.audio_url) {
+                setAudioUrl(data.audio_url);
+                setSuccessMessage('Podcast generated successfully! You can now play it below.');
+            }
+            
+        } catch (error) {
+            console.error('Error generating podcast:', error);
+            setSuccessMessage(`Error: ${error.message}`);
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    const handlePlayPause = () => {
+        if (audioRef.current) {
+            if (isPlaying) {
+                audioRef.current.pause();
+            } else {
+                audioRef.current.play();
+            }
+            setIsPlaying(!isPlaying);
+        }
+    };
+
+    const formatTime = (time) => {
+        const minutes = Math.floor(time / 60);
+        const seconds = Math.floor(time % 60);
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    };
+
+    const handleTimeUpdate = () => {
+        if (audioRef.current) {
+            setCurrentTime(audioRef.current.currentTime);
+        }
+    };
+
+    const handleLoadedMetadata = () => {
+        if (audioRef.current) {
+            setDuration(audioRef.current.duration);
+        }
+    };
+
+    const handleProgressClick = (e) => {
+        if (audioRef.current) {
+            const progressBar = e.currentTarget;
+            const rect = progressBar.getBoundingClientRect();
+            const clickPosition = (e.clientX - rect.left) / rect.width;
+            const newTime = clickPosition * audioRef.current.duration;
+            if (!isNaN(newTime)) {
+                audioRef.current.currentTime = newTime;
+                setCurrentTime(newTime);
+            }
+        }
+    };
+
+    const handleProgressMouseMove = (e) => {
+        if (audioRef.current && e.buttons === 1) { // Check if primary mouse button is pressed
+            const progressBar = e.currentTarget;
+            const rect = progressBar.getBoundingClientRect();
+            const clickPosition = (e.clientX - rect.left) / rect.width;
+            const newTime = clickPosition * audioRef.current.duration;
+            if (!isNaN(newTime)) {
+                audioRef.current.currentTime = newTime;
+                setCurrentTime(newTime);
+            }
+        }
+    };
+
     return (
         <div className="editor-container">
             <div className="editor-header">
@@ -239,9 +368,84 @@ const WorkflowEditor = () => {
                     </div>
                 </div>
                 <div className="editor-insights">
-                    <h2>Workflow Insights</h2>
+                    <div
+                        className="toggle-insights"
+                        onClick={() => setIsInsightsEnabled(!isInsightsEnabled)}
+                        style={{ cursor: 'pointer' }}
+                        title={isInsightsEnabled ? "Click to disable insights" : "Click to enable insights"}
+                    >
+                        <h2>{isInsightsEnabled ? "Workflow Insights" : "Text to Podcast"}</h2>
+                        {isInsightsEnabled ? <BsToggle2On style={{ marginLeft: '10px' }} /> : <BsToggle2Off style={{ marginLeft: '10px' }} />}
+                    </div>
+
                     <div className="insights-content">
-                        <p>Real-time analytics and insights about your workflow will appear here</p>
+                        {isInsightsEnabled ? (
+                            <p>
+                                Workflow insights are now active. You'll see real-time analytics and insights about your workflow here.
+                            </p>
+                        ) : (
+                            <div className="podcast-generation-form">
+                                <div className="voice-controls">
+                                    <div className="voice-select-group">
+                                        <label>Voice:</label>
+                                        <select 
+                                            value={selectedVoice}
+                                            onChange={(e) => setSelectedVoice(e.target.value)}
+                                        >
+                                            {voices.map(voice => (
+                                                <option key={voice.id} value={voice.id}>
+                                                    {voice.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="voice-select-group">
+                                        <label>Emotion:</label>
+                                        <select 
+                                            value={selectedEmotion}
+                                            onChange={(e) => setSelectedEmotion(e.target.value)}
+                                        >
+                                            {emotions.map(emotion => (
+                                                <option key={emotion.id} value={emotion.id}>
+                                                    {emotion.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="voice-select-group">
+                                        <label>Speed: {voiceSpeed}x</label>
+                                        <input
+                                            type="range"
+                                            min="0.5"
+                                            max="2.0"
+                                            step="0.1"
+                                            value={voiceSpeed}
+                                            onChange={(e) => setVoiceSpeed(parseFloat(e.target.value))}
+                                            className="speed-slider"
+                                        />
+                                    </div>
+                                </div>
+                                <textarea
+                                    value={podcastText}
+                                    onChange={(e) => setPodcastText(e.target.value)}
+                                    placeholder="Enter your text here to generate a podcast..."
+                                    rows={8}
+                                    className="podcast-text-input"
+                                />
+                                <button 
+                                    className="generate-button"
+                                    onClick={handleGeneratePodcast}
+                                    disabled={isGenerating || !podcastText.trim()}
+                                >
+                                    {isGenerating ? 'Generating...' : 'Generate Podcast'}
+                                </button>
+                                {successMessage && (
+                                    <div className={`generation-message ${successMessage.includes('Error') ? 'error' : 'success'}`}>
+                                        {successMessage}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
                 <div className="editor-sidebar">
@@ -276,14 +480,38 @@ const WorkflowEditor = () => {
                     <div className="sidebar-card podcast-audio-view">
                         <h3><FaVolumeUp /> Podcast Preview</h3>
                         <div className="audio-player">
+                            <audio
+                                ref={audioRef}
+                                src={audioUrl}
+                                onTimeUpdate={handleTimeUpdate}
+                                onLoadedMetadata={handleLoadedMetadata}
+                                onEnded={() => setIsPlaying(false)}
+                                onPause={() => setIsPlaying(false)}
+                                onPlay={() => setIsPlaying(true)}
+                            />
                             <div className="player-controls">
-                                <button className="play-button">
-                                    <FaPlay />
+                                <button 
+                                    className="play-button" 
+                                    onClick={handlePlayPause}
+                                    disabled={!audioUrl}
+                                >
+                                    {isPlaying ? <FaPause /> : <FaPlay />}
                                 </button>
-                                <div className="progress-bar">
-                                    <div className="progress"></div>
+                                <div 
+                                    className="progress-bar" 
+                                    onClick={handleProgressClick}
+                                    onMouseMove={handleProgressMouseMove}
+                                >
+                                    <div 
+                                        className="progress" 
+                                        style={{ 
+                                            width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` 
+                                        }}
+                                    />
                                 </div>
-                                <div className="time-display">0:00 / 0:00</div>
+                                <div className="time-display">
+                                    {formatTime(currentTime)} / {formatTime(duration)}
+                                </div>
                             </div>
                         </div>
                         <p>Preview your generated podcast audio</p>
