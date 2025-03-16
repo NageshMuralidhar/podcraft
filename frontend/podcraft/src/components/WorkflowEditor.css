@@ -287,6 +287,16 @@
     background-color: #D97706;
 }
 
+.add-node {
+    background-color: #10B981;
+    color: white;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.add-node:hover {
+    background-color: #059669;
+}
+
 /* Light theme adjustments */
 .light .flow-wrapper {
     background: rgba(255, 255, 255, 0.3);
@@ -339,6 +349,15 @@
 
 :root[data-theme="light"] .execute-workflow:hover {
     background-color: #D97706;
+}
+
+:root[data-theme="light"] .add-node {
+    background-color: #10B981;
+    color: white;
+}
+
+:root[data-theme="light"] .add-node:hover {
+    background-color: #059669;
 }
 
 .workflow-name-container {
@@ -474,7 +493,7 @@
 }
 
 .workflow-name-input::placeholder {
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.3);
 }
 
 /* Light theme adjustments for input */
@@ -485,18 +504,19 @@
 }
 
 .light .workflow-name-input:focus {
-    border-color: #6366f1;
-    background: rgba(0, 0, 0, 0.08);
+    border-color: rgba(99, 102, 241, 0.5);
+    background: rgba(0, 0, 0, 0.02);
 }
 
 .light .workflow-name-input::placeholder {
-    color: rgba(0, 0, 0, 0.4);
+    color: rgba(0, 0, 0, 0.3);
 }
 
 .editor-insights h2 {
     margin: 0;
     font-size: 1.25rem;
     color: #fff;
+    background: linear-gradient(0.25turn, #999, #fff);
 }
 
 .toggle-insights {

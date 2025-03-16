@@ -63,6 +63,24 @@ class PodcastResponse(BaseModel):
     topic: str
     error: Optional[str]
 
+# New Workflow Models
+class WorkflowCreate(BaseModel):
+    name: str
+    description: str
+    nodes: List[Dict]
+    edges: List[Dict]
+
+class WorkflowResponse(BaseModel):
+    id: str
+    name: str
+    description: str
+    nodes: List[Dict]
+    edges: List[Dict]
+    user_id: str
+    created_at: Optional[str]
+    updated_at: Optional[str] 
+    error: Optional[str]
+
 class TextPodcastRequest(BaseModel):
     text: str = Field(..., description="The text content to convert into a podcast")
     voice_id: str = Field(..., description="Voice ID for the speaker")
