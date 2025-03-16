@@ -1,0 +1,217 @@
+/* Custom Node Styling */
+.custom-node {
+    background: rgba(30, 30, 40, 0.95);
+    border-radius: 10px;
+    padding: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    width: 130px;
+    border: 1px solid transparent;
+    backdrop-filter: blur(8px);
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: visible;
+}
+
+.custom-node::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background: linear-gradient(45deg, transparent, currentColor, transparent);
+    border-radius: 11px;
+    z-index: -1;
+    opacity: 0.2;
+}
+
+.custom-node:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.custom-node:hover::before {
+    opacity: 0.3;
+}
+
+.node-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.node-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.node-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    color: white;
+    font-size: 12px;
+}
+
+.node-title {
+    flex: 1;
+    font-weight: 600;
+    font-size: 12px;
+    color: white;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.node-description {
+    font-size: 8px;
+    color: rgba(255, 255, 255, 0.6);
+    max-height: 24px;
+    overflow: hidden;
+    margin-left: 32px;
+    line-height: 1.2;
+}
+
+/* Custom Handle Styling */
+.custom-handle {
+    width: 8px !important;
+    height: 8px !important;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    z-index: 10;
+    transition: all 0.2s ease;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.custom-handle:hover {
+    width: 10px !important;
+    height: 10px !important;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+
+/* Node type-specific styling */
+.input-node {
+    color: #6366F1;
+}
+
+.researcher-node {
+    color: #4C1D95;
+}
+
+.agent-node {
+    color: #10B981;
+}
+
+.insights-node {
+    color: #F59E0B;
+}
+
+.notify-node {
+    color: #EF4444;
+}
+
+.publish-node {
+    color: #DC2626;
+}
+
+.default-node {
+    color: #8B5CF6;
+}
+
+/* Light theme adjustments */
+:root[data-theme="light"] .custom-node {
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="light"] .node-title {
+    color: #333;
+}
+
+:root[data-theme="light"] .node-description {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="light"] .custom-handle {
+    border: 1px solid rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Execution Status Styling */
+.custom-node.pending {
+    opacity: 0.7;
+}
+
+.custom-node.in-progress {
+    animation: node-pulse 1.5s infinite;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5);
+}
+
+.custom-node.in-progress::before {
+    opacity: 0.5;
+    background: linear-gradient(45deg, transparent, #6366f1, transparent);
+    animation: border-pulse 1.5s infinite;
+}
+
+.custom-node.completed {
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+.custom-node.completed::before {
+    opacity: 0.5;
+    background: linear-gradient(45deg, transparent, #10B981, transparent);
+}
+
+.custom-node.error {
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+.custom-node.error::before {
+    opacity: 0.5;
+    background: linear-gradient(45deg, transparent, #EF4444, transparent);
+}
+
+@keyframes node-pulse {
+    0% {
+        transform: translateY(0);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5);
+    }
+
+    50% {
+        transform: translateY(-2px);
+        box-shadow: 0 0 10px rgba(99, 102, 241, 0.7);
+    }
+
+    100% {
+        transform: translateY(0);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5);
+    }
+}
+
+@keyframes border-pulse {
+    0% {
+        opacity: 0.3;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+
+    100% {
+        opacity: 0.3;
+    }
+}
+
+/* Light theme adjustments */
+:root[data-theme="light"] .custom-node.in-progress {
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
+}
+
+:root[data-theme="light"] .custom-node.completed {
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.2);
+}
+
+:root[data-theme="light"] .custom-node.error {
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+}

@@ -23,6 +23,11 @@
     opacity: 0;
     animation: slideIn 0.3s ease forwards, fadeOut 0.3s ease 2.7s forwards;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    width: auto;
+    max-width: 400px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .toast.success {
