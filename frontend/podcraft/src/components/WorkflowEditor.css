@@ -516,7 +516,6 @@
     margin: 0;
     font-size: 1.25rem;
     color: #fff;
-    background: linear-gradient(0.25turn, #999, #fff);
 }
 
 .toggle-insights {
@@ -557,6 +556,11 @@
 }
 
 .light .editor-insights h2 {
+    color: #333;
+}
+
+.light .toggle-insights {
+    border-bottom: 1px solid rgba(99, 102, 241, 0.1);
     color: #333;
 }
 
