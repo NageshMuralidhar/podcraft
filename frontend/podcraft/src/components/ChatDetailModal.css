@@ -1,0 +1,278 @@
+.chat-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+    backdrop-filter: blur(5px);
+    animation: fadeIn 0.25s ease-out;
+}
+
+.chat-modal-content {
+    background: rgba(25, 25, 35, 0.95);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(99, 102, 241, 0.3);
+    width: 90%;
+    max-width: 700px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    animation: slideUp 0.3s ease-out;
+}
+
+.chat-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: rgba(30, 30, 45, 0.7);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.agent-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.agent-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.agent-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.agent-details h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.turn-badge {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(99, 102, 241, 0.2);
+    padding: 3px 8px;
+    border-radius: 12px;
+    margin-top: 4px;
+    width: fit-content;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.copy-button,
+.close-button {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 1rem;
+}
+
+.copy-button {
+    font-size: 0.85rem;
+}
+
+.copy-button:hover,
+.close-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.copy-button.copied {
+    background: rgba(34, 197, 94, 0.3);
+    color: rgb(134, 239, 172);
+    animation: flash 0.5s;
+}
+
+.copy-button.copied::after {
+    content: 'Copied!';
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(34, 197, 94, 0.9);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    animation: fadeOut 2s;
+}
+
+.close-button {
+    font-size: 1.4rem;
+}
+
+.chat-modal-body {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    min-height: 200px;
+    max-height: 60vh;
+}
+
+.content-box {
+    line-height: 1.7;
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.9);
+    white-space: pre-wrap;
+}
+
+.chat-modal-footer {
+    padding: 16px 20px;
+    display: flex;
+    justify-content: flex-end;
+    background: rgba(30, 30, 45, 0.7);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.modal-button {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.close-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes flash {
+
+    0%,
+    100% {
+        background: rgba(34, 197, 94, 0.3);
+    }
+
+    50% {
+        background: rgba(34, 197, 94, 0.5);
+    }
+}
+
+@keyframes fadeOut {
+
+    0%,
+    10% {
+        opacity: 1;
+    }
+
+    90%,
+    100% {
+        opacity: 0;
+    }
+}
+
+/* Light theme adjustments */
+:root[data-theme="light"] .chat-modal-content {
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(99, 102, 241, 0.2);
+    border: 1px solid rgba(99, 102, 241, 0.1);
+}
+
+:root[data-theme="light"] .chat-modal-header,
+:root[data-theme="light"] .chat-modal-footer {
+    background: rgba(245, 245, 255, 0.9);
+    border-color: rgba(0, 0, 0, 0.05);
+}
+
+:root[data-theme="light"] .agent-details h3 {
+    color: #333;
+}
+
+:root[data-theme="light"] .turn-badge {
+    color: rgba(0, 0, 0, 0.7);
+    background: rgba(99, 102, 241, 0.1);
+}
+
+:root[data-theme="light"] .copy-button,
+:root[data-theme="light"] .close-button {
+    background: rgba(0, 0, 0, 0.05);
+    color: #333;
+}
+
+:root[data-theme="light"] .copy-button:hover,
+:root[data-theme="light"] .close-button:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="light"] .content-box {
+    color: #333;
+}
+
+:root[data-theme="light"] .close-btn {
+    background: rgba(0, 0, 0, 0.05);
+    color: #333;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="light"] .close-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+}

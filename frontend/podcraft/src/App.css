@@ -474,3 +474,23 @@ sub {
     font-size: 1.25rem;
   }
 }
+
+#toast-container {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  width: auto;
+  max-width: calc(100vw - 40px);
+  pointer-events: none;
+}
+
+#toast-container>* {
+  pointer-events: auto;
+}
+
+/* Prevent horizontal scrollbar when toast appears */
+body.has-toast {
+  overflow-x: hidden;
+}

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Union, Any
 from datetime import datetime
 
 class UserCreate(BaseModel):
@@ -29,6 +29,7 @@ class AgentCreate(BaseModel):
     pitch: float
     volume: float
     output_format: str
+    personality: str = None  # Optional field for agent personality
 
 class AgentResponse(BaseModel):
     agent_id: str
@@ -41,6 +42,7 @@ class AgentResponse(BaseModel):
     volume: float
     output_format: str
     user_id: str
+    personality: str = None  # Optional field for agent personality
 
 class PodcastRequest(BaseModel):
     topic: str
@@ -63,12 +65,27 @@ class PodcastResponse(BaseModel):
     topic: str
     error: Optional[str]
 
+# Models for structured debate transcript and insights
+class TranscriptEntry(BaseModel):
+    agentId: str
+    agentName: str
+    turn: int
+    content: str
+
+class InsightsData(BaseModel):
+    topic: str
+    research: str
+    transcript: List[TranscriptEntry]
+    keyInsights: List[str]
+    conclusion: str
+
 # New Workflow Models
 class WorkflowCreate(BaseModel):
     name: str
     description: str
     nodes: List[Dict]
     edges: List[Dict]
+    insights: Optional[Union[InsightsData, str]] = None
 
 class WorkflowResponse(BaseModel):
     id: str
@@ -76,9 +93,10 @@ class WorkflowResponse(BaseModel):
     description: str
     nodes: List[Dict]
     edges: List[Dict]
+    insights: Optional[Union[InsightsData, str]] = None
     user_id: str
     created_at: Optional[str]
-    updated_at: Optional[str] 
+    updated_at: Optional[str]
 
 class TextPodcastRequest(BaseModel):
     text: str 

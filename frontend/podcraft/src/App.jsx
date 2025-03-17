@@ -10,6 +10,7 @@ import { RiChatVoiceAiFill } from "react-icons/ri";
 import { FaUser, FaSignOutAlt } from "react-icons/fa";
 import { PiGooglePodcastsLogo } from "react-icons/pi";
 import { TiFlowSwitch } from "react-icons/ti";
+import React from 'react';
 
 import Home from './pages/Home'
 import Podcasts from './pages/Podcasts'
@@ -18,6 +19,12 @@ import WorkflowEditor from './components/WorkflowEditor'
 import UserModal from './components/UserModal'
 import Toast from './components/Toast'
 import './App.css'
+
+// Global toast context
+export const ToastContext = React.createContext({
+  toast: null,
+  setToast: () => { }
+});
 
 function App() {
   const [isOpen, setIsOpen] = useState(false);
@@ -129,122 +136,124 @@ function App() {
   };
 
   return (
-    <Router>
-      <>
-        <div className={`${isAuthenticated && 'simple-bg'}`}>
-        </div>
-        <div className={`app-container ${isDark ? 'dark' : 'light'} ${!isAuthenticated && isDark ? 'bg-login' : ''} `} >
-          <nav ref={sidebarRef} className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
-            <div className='product-name'>
-              <span><PiGooglePodcastsLogo /> PodCraft <sup>©</sup> <sub>Beta</sub></span>
-            </div>
-            <span className="toggle-btn" onClick={toggleSidebar}>
-              {isOpen ? <TbLayoutSidebarLeftCollapse /> : <TbLayoutSidebarRightCollapse />}
-            </span>
+    <ToastContext.Provider value={{ toast, setToast }}>
+      <Router>
+        <>
+          <div className={`${isAuthenticated && 'simple-bg'}`}>
+          </div>
+          <div className={`app-container ${isDark ? 'dark' : 'light'} ${!isAuthenticated && isDark ? 'bg-login' : ''} `} >
+            <nav ref={sidebarRef} className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
+              <div className='product-name'>
+                <span><PiGooglePodcastsLogo /> PodCraft <sup>©</sup> <sub>Beta</sub></span>
+              </div>
+              <span className="toggle-btn" onClick={toggleSidebar}>
+                {isOpen ? <TbLayoutSidebarLeftCollapse /> : <TbLayoutSidebarRightCollapse />}
+              </span>
 
-            <div className="nav-links">
-              {isAuthenticated && (
-                <>
-                  <Link to="/home" className="nav-link">
-                    <AiFillHome />
-                    <span className={`link-text ${!isOpen && 'hidden'}`}>Home</span>
-                  </Link>
+              <div className="nav-links">
+                {isAuthenticated && (
+                  <>
+                    <Link to="/home" className="nav-link">
+                      <AiFillHome />
+                      <span className={`link-text ${!isOpen && 'hidden'}`}>Home</span>
+                    </Link>
 
-                  <Link to="/podcasts" className="nav-link">
-                    <BiPodcast />
-                    <span className={`link-text ${!isOpen && 'hidden'}`}>Podcasts</span>
-                  </Link>
+                    <Link to="/podcasts" className="nav-link">
+                      <BiPodcast />
+                      <span className={`link-text ${!isOpen && 'hidden'}`}>Podcasts</span>
+                    </Link>
 
-                  <Link to="/workflows" className="nav-link">
-                    <TiFlowSwitch />
-                    <span className={`link-text ${!isOpen && 'hidden'}`}>Workflows</span>
-                  </Link>
+                    <Link to="/workflows" className="nav-link">
+                      <TiFlowSwitch />
+                      <span className={`link-text ${!isOpen && 'hidden'}`}>Workflows</span>
+                    </Link>
 
-                  <div className="nav-divider"></div>
+                    <div className="nav-divider"></div>
 
-                  <a href="#" className="nav-link" onClick={() => setIsModalOpen(true)}>
-                    <FaUser />
-                    <span className={`link-text ${!isOpen && 'hidden'}`}>Profile</span>
-                  </a>
+                    <a href="#" className="nav-link" onClick={() => setIsModalOpen(true)}>
+                      <FaUser />
+                      <span className={`link-text ${!isOpen && 'hidden'}`}>Profile</span>
+                    </a>
 
-                  <a href="#" className="nav-link" onClick={handleLogout}>
-                    <FaSignOutAlt />
-                    <span className={`link-text ${!isOpen && 'hidden'}`}>Logout</span>
-                  </a>
-                </>
-              )}
+                    <a href="#" className="nav-link" onClick={handleLogout}>
+                      <FaSignOutAlt />
+                      <span className={`link-text ${!isOpen && 'hidden'}`}>Logout</span>
+                    </a>
+                  </>
+                )}
 
-              <a href="#" className="nav-link theme-toggle" onClick={toggleTheme}>
-                {isDark ? <MdDarkMode /> : <MdLightMode />}
-                <span className={`link-text ${!isOpen && 'hidden'}`}>
-                  {isDark ? 'Dark Mode' : 'Light Mode'}
-                </span>
-              </a>
-            </div>
-          </nav>
+                <a href="#" className="nav-link theme-toggle" onClick={toggleTheme}>
+                  {isDark ? <MdDarkMode /> : <MdLightMode />}
+                  <span className={`link-text ${!isOpen && 'hidden'}`}>
+                    {isDark ? 'Dark Mode' : 'Light Mode'}
+                  </span>
+                </a>
+              </div>
+            </nav>
 
-          <main className={`main-content ${!isOpen ? 'expanded' : ''}`}>
-            {!isAuthenticated ? (
-              <div className="auth-container">
-                <div className="hero-section">
-                  <div className="hero-content">
-                    <div className="hero-logo">
-                      <ImPodcast />
-                      <h1>PodCraft</h1>
+            <main className={`main-content ${!isOpen ? 'expanded' : ''}`}>
+              {!isAuthenticated ? (
+                <div className="auth-container">
+                  <div className="hero-section">
+                    <div className="hero-content">
+                      <div className="hero-logo">
+                        <ImPodcast />
+                        <h1>PodCraft</h1>
+                      </div>
+                      <p className="hero-tagline">One prompt <RiChatVoiceAiFill /> to Podcast <BiPodcast /></p>
                     </div>
-                    <p className="hero-tagline">One prompt <RiChatVoiceAiFill /> to Podcast <BiPodcast /></p>
+                  </div>
+                  <div className="auth-form-container">
+                    <h2>{isLogin ? 'Login' : 'Sign Up'}</h2>
+                    <form className="auth-form" onSubmit={handleSubmit}>
+                      <div className="form-group">
+                        <input type="text" name="username" placeholder="Username" required />
+                      </div>
+                      <div className="form-group">
+                        <input type="password" name="password" placeholder="Password" required />
+                      </div>
+                      <button type="submit" className="submit-btn">
+                        {isLogin ? 'Login' : 'Sign Up'}
+                      </button>
+                    </form>
+                    <p className="form-switch">
+                      {isLogin ? "Don't have an account? " : "Already have an account? "}
+                      <a href="#" onClick={toggleForm}>
+                        {isLogin ? 'Sign Up' : 'Login'}
+                      </a>
+                    </p>
                   </div>
                 </div>
-                <div className="auth-form-container">
-                  <h2>{isLogin ? 'Login' : 'Sign Up'}</h2>
-                  <form className="auth-form" onSubmit={handleSubmit}>
-                    <div className="form-group">
-                      <input type="text" name="username" placeholder="Username" required />
-                    </div>
-                    <div className="form-group">
-                      <input type="password" name="password" placeholder="Password" required />
-                    </div>
-                    <button type="submit" className="submit-btn">
-                      {isLogin ? 'Login' : 'Sign Up'}
-                    </button>
-                  </form>
-                  <p className="form-switch">
-                    {isLogin ? "Don't have an account? " : "Already have an account? "}
-                    <a href="#" onClick={toggleForm}>
-                      {isLogin ? 'Sign Up' : 'Login'}
-                    </a>
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <Routes>
-                <Route path="/home" element={<Home />} />
-                <Route path="/podcasts" element={<Podcasts />} />
-                <Route path="/workflows" element={<Workflows />} />
-                <Route path="/workflows/workflow/:workflowId" element={<WorkflowEditor />} />
-                <Route path="/" element={<Navigate to="/home" replace />} />
-              </Routes>
-            )}
-          </main>
+              ) : (
+                <Routes>
+                  <Route path="/home" element={<Home />} />
+                  <Route path="/podcasts" element={<Podcasts />} />
+                  <Route path="/workflows" element={<Workflows />} />
+                  <Route path="/workflows/workflow/:workflowId" element={<WorkflowEditor />} />
+                  <Route path="/" element={<Navigate to="/home" replace />} />
+                </Routes>
+              )}
+            </main>
 
-          <UserModal
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-            token={localStorage.getItem('token')}
-          />
+            <UserModal
+              isOpen={isModalOpen}
+              onClose={() => setIsModalOpen(false)}
+              token={localStorage.getItem('token')}
+            />
 
-          <div className="toast-container">
-            {toast && (
-              <Toast
-                message={toast.message}
-                type={toast.type}
-                onClose={() => setToast(null)}
-              />
-            )}
+            <div className="toast-container">
+              {toast && (
+                <Toast
+                  message={toast.message}
+                  type={toast.type}
+                  onClose={() => setToast(null)}
+                />
+              )}
+            </div>
           </div>
-        </div>
-      </>
-    </Router>
+        </>
+      </Router>
+    </ToastContext.Provider>
   )
 }
 
