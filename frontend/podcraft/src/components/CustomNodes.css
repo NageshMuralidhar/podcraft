@@ -96,6 +96,14 @@
 /* Node type-specific styling */
 .input-node {
     color: #6366F1;
+    background: rgba(30, 30, 40, 0.95);
+}
+
+/* Remove the pseudo-element background for input and publish nodes */
+.input-node::before,
+.publish-node::before {
+    background: none;
+    opacity: 0;
 }
 
 .input-node.has-prompt {
@@ -235,6 +243,7 @@
 
 .publish-node {
     color: #DC2626;
+    background: rgba(30, 30, 40, 0.95);
 }
 
 .default-node {
