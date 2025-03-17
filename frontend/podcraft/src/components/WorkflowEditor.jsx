@@ -1796,41 +1796,93 @@ Understanding this topic has significant implications for policy, practice, and 
 
     // Add a function to save the edited response
     const saveEditedResponse = async (agentId, turn, newResponse) => {
-        // Only proceed if we have workflow insights
-        if (!workflowInsights) return;
-
         try {
             console.log('Saving edited response for agent:', agentId, 'turn:', turn);
 
-            // Parse the current HTML insights
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(workflowInsights, 'text/html');
+            // Check if we have structured data or HTML insights
+            if (typeof workflowInsights === 'object' && workflowInsights?.transcript) {
+                // Handle structured data - update the transcript directly
+                const updatedInsights = { ...workflowInsights };
 
-            // Find the chat bubble with the matching data attributes
-            const chatBubble = doc.querySelector(`.chat-bubble[data-agent-id="${agentId}"][data-turn="${turn}"]`);
+                // Find and update the specific transcript entry
+                if (Array.isArray(updatedInsights.transcript)) {
+                    const entryIndex = updatedInsights.transcript.findIndex(
+                        entry => entry.agentId === agentId && entry.turn === turn
+                    );
 
-            if (chatBubble) {
-                // Update the content in the DOM
-                const contentDiv = chatBubble.querySelector('.chat-content');
-                if (contentDiv) {
-                    // Format new response with proper line breaks
-                    contentDiv.innerHTML = newResponse.replace(/\n\n/g, '<br><br>');
+                    if (entryIndex !== -1) {
+                        // Update the content in the transcript
+                        updatedInsights.transcript[entryIndex] = {
+                            ...updatedInsights.transcript[entryIndex],
+                            content: newResponse
+                        };
 
-                    // Get the updated HTML
-                    const updatedInsights = doc.body.innerHTML;
+                        // Update state with the modified insights
+                        setWorkflowInsights(updatedInsights);
 
-                    // Update state with the new insights
-                    setWorkflowInsights(updatedInsights);
+                        // Save to database
+                        await saveWorkflowWithInsights(updatedInsights);
 
-                    // Save to database
-                    await saveWorkflowWithInsights(updatedInsights);
+                        // Show success toast
+                        setToast({
+                            message: 'Response updated successfully',
+                            type: 'success'
+                        });
 
-                    // Show success toast
-                    setToast({
-                        message: 'Response updated successfully',
-                        type: 'success'
-                    });
+                        // Also update chatModalData to reflect changes in the modal
+                        if (chatModalData && chatModalData.agentId === agentId && chatModalData.turn === turn) {
+                            setChatModalData({
+                                ...chatModalData,
+                                content: newResponse
+                            });
+                        }
+                    }
                 }
+            } else if (typeof workflowInsights === 'string') {
+                // Handle HTML content - parse and update DOM
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(workflowInsights, 'text/html');
+
+                // Find the chat bubble with the matching data attributes
+                const chatBubble = doc.querySelector(`.chat-bubble[data-agent-id="${agentId}"][data-turn="${turn}"]`);
+
+                if (chatBubble) {
+                    // Update the content in the DOM
+                    const contentDiv = chatBubble.querySelector('.chat-content');
+                    if (contentDiv) {
+                        // Format new response with proper line breaks
+                        contentDiv.innerHTML = newResponse.replace(/\n\n/g, '<br><br>');
+
+                        // Get the updated HTML
+                        const updatedInsights = doc.body.innerHTML;
+
+                        // Update state with the new insights
+                        setWorkflowInsights(updatedInsights);
+
+                        // Save to database
+                        await saveWorkflowWithInsights(updatedInsights);
+
+                        // Show success toast
+                        setToast({
+                            message: 'Response updated successfully',
+                            type: 'success'
+                        });
+
+                        // Also update chatModalData to reflect changes in the modal
+                        if (chatModalData && chatModalData.agentId === agentId && chatModalData.turn === turn) {
+                            setChatModalData({
+                                ...chatModalData,
+                                content: newResponse.replace(/\n\n/g, '<br><br>')
+                            });
+                        }
+                    }
+                }
+            } else {
+                console.error('Cannot save edited response: insights data format not recognized');
+                setToast({
+                    message: 'Failed to update response: Unknown data format',
+                    type: 'error'
+                });
             }
         } catch (error) {
             console.error('Error updating response:', error);
@@ -2588,6 +2640,7 @@ Understanding this topic has significant implications for policy, practice, and 
                     agentId={chatModalData.agentId}
                     turn={chatModalData.turn}
                     content={chatModalData.content}
+                    onSave={saveEditedResponse}
                 />
             )}
         </div>
