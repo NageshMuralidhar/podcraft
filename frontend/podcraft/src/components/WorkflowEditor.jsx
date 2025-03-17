@@ -2168,7 +2168,7 @@ Understanding this topic has significant implications for policy, practice, and 
                         ) : (
                             <>
                                 <FaPodcast />
-                                <span>Generate Podcast from Debate</span>
+                                <span>Generate Podcast</span>
                             </>
                         )}
                     </button>
