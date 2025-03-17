@@ -10,11 +10,13 @@ import { RiChatVoiceAiFill } from "react-icons/ri";
 import { FaUser, FaSignOutAlt } from "react-icons/fa";
 import { PiGooglePodcastsLogo } from "react-icons/pi";
 import { TiFlowSwitch } from "react-icons/ti";
+import { SiNodemon } from "react-icons/si";
 import React from 'react';
 
 import Home from './pages/Home'
 import Podcasts from './pages/Podcasts'
 import Workflows from './pages/Workflows'
+import Demo from './pages/Demo'
 import WorkflowEditor from './components/WorkflowEditor'
 import UserModal from './components/UserModal'
 import Toast from './components/Toast'
@@ -167,6 +169,11 @@ function App() {
                       <TiFlowSwitch />
                       <span className={`link-text ${!isOpen && 'hidden'}`}>Workflows</span>
                     </Link>
+                    
+                    <Link to="/demo" className="nav-link">
+                      <SiNodemon />
+                      <span className={`link-text ${!isOpen && 'hidden'}`}>Demo</span>
+                    </Link>
 
                     <div className="nav-divider"></div>
 
@@ -229,6 +236,7 @@ function App() {
                   <Route path="/home" element={<Home />} />
                   <Route path="/podcasts" element={<Podcasts />} />
                   <Route path="/workflows" element={<Workflows />} />
+                  <Route path="/demo" element={<Demo />} />
                   <Route path="/workflows/workflow/:workflowId" element={<WorkflowEditor />} />
                   <Route path="/" element={<Navigate to="/home" replace />} />
                 </Routes>
