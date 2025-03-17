@@ -91,8 +91,6 @@
     background: rgba(255, 255, 255, 0.1);
     border: none;
     color: white;
-    width: 32px;
-    height: 32px;
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -275,4 +273,128 @@
 
 :root[data-theme="light"] .close-btn:hover {
     background: rgba(0, 0, 0, 0.1);
+}
+
+.edit-button,
+.save-button,
+.cancel-button {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.85rem;
+}
+
+.edit-button:hover {
+    background: rgba(99, 102, 241, 0.3);
+    transform: translateY(-2px);
+}
+
+.save-button {
+    background: rgba(16, 185, 129, 0.2);
+    color: rgb(134, 239, 172);
+}
+
+.save-button:hover {
+    background: rgba(16, 185, 129, 0.4);
+    transform: translateY(-2px);
+}
+
+.cancel-button {
+    background: rgba(239, 68, 68, 0.2);
+    color: rgb(252, 165, 165);
+}
+
+.cancel-button:hover {
+    background: rgba(239, 68, 68, 0.4);
+    transform: translateY(-2px);
+}
+
+.content-editor {
+    width: 100%;
+    min-height: 200px;
+    background: rgba(30, 30, 45, 0.6);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 8px;
+    color: white;
+    font-family: inherit;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    /* padding: 12px; */
+    resize: vertical;
+    transition: all 0.2s ease;
+}
+
+.content-editor:focus {
+    outline: none;
+    border-color: rgba(99, 102, 241, 0.8);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.save-btn {
+    background: rgba(16, 185, 129, 0.2);
+    color: rgb(134, 239, 172);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    margin-left: 12px;
+}
+
+.save-btn:hover {
+    background: rgba(16, 185, 129, 0.4);
+    transform: translateY(-2px);
+}
+
+/* Light theme adjustments for new elements */
+:root[data-theme="light"] .edit-button,
+:root[data-theme="light"] .save-button,
+:root[data-theme="light"] .cancel-button {
+    background: rgba(0, 0, 0, 0.05);
+    color: #333;
+}
+
+:root[data-theme="light"] .edit-button:hover {
+    background: rgba(99, 102, 241, 0.2);
+}
+
+:root[data-theme="light"] .save-button {
+    background: rgba(16, 185, 129, 0.1);
+    color: rgb(5, 150, 105);
+}
+
+:root[data-theme="light"] .save-button:hover {
+    background: rgba(16, 185, 129, 0.2);
+}
+
+:root[data-theme="light"] .cancel-button {
+    background: rgba(239, 68, 68, 0.1);
+    color: rgb(220, 38, 38);
+}
+
+:root[data-theme="light"] .cancel-button:hover {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+:root[data-theme="light"] .content-editor {
+    background: #fff;
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    color: #333;
+}
+
+:root[data-theme="light"] .content-editor:focus {
+    border-color: rgba(99, 102, 241, 0.6);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
+:root[data-theme="light"] .save-btn {
+    background: rgba(16, 185, 129, 0.1);
+    color: rgb(5, 150, 105);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+:root[data-theme="light"] .save-btn:hover {
+    background: rgba(16, 185, 129, 0.2);
 }
