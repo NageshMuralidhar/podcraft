@@ -828,26 +828,4 @@ async def delete_workflow(workflow_id: str, current_user: dict = Depends(get_cur
             
         return {"message": "Workflow deleted successfully"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/podcasts/default")
-async def get_default_podcast(current_user: dict = Depends(get_current_user)):
-    """Get the default podcast for the current user."""
-    try:
-        # Always return the fixed audio path
-        fixed_audio_path = "../backend/temp_audio/Default/final_podcast.mp3"
-        
-        # Check if the file exists
-        if os.path.exists(fixed_audio_path):
-            return {
-                "audio_url": "http://localhost:8000/audio/Default/final_podcast.mp3",
-                "topic": "Latest Generated Podcast",
-                "_id": "default",
-                "message": "Default podcast loaded"
-            }
-        else:
-            return {"message": "No podcast found"}
-            
-    except Exception as e:
-        logger.error(f"Error getting default podcast: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e)) 

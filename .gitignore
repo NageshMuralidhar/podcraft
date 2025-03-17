@@ -3,9 +3,10 @@ backend/.env
 frontend/podcraft/node_modules
 backend/.venv/
 backend/venv/
+/.DS_Store
+frontend/podcraft/.DS_Store
+backend/.DS_Store
+frontend/.DS_Store
+backend/temp_audio/*
 backend/temp/*
 backend/app/agents/__pycache__/
-backend/temp_audio/*
-!backend/temp_audio/Default/
-!backend/temp_audio/Default/final_podcast.mp3
-.DS_Store
