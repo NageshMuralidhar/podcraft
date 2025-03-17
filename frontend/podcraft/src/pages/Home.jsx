@@ -29,6 +29,8 @@ const Home = () => {
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [isUnlocking, setIsUnlocking] = useState(false);
+    const [isAudioLoading, setIsAudioLoading] = useState(false);
+    const [isSeeking, setIsSeeking] = useState(false);
     const audioRef = useRef(null);
     const navigate = useNavigate();
     const workflowDropdownRef = useRef(null);
@@ -179,11 +181,11 @@ const Home = () => {
 
     const checkForExistingPodcast = async () => {
         try {
+            // Check server directly - removing local file check
             const token = localStorage.getItem('token');
             if (!token) return;
 
-            // Fetch the most recent podcast using the new endpoint
-            const response = await fetch('http://localhost:8000/podcasts/latest', {
+            const response = await fetch('http://localhost:8000/podcasts/default', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -192,27 +194,29 @@ const Home = () => {
             if (response.ok) {
                 const data = await response.json();
 
-                // Check if we got a podcast (not just a message)
                 if (data && data.audio_url) {
-                    // Set the audio URL directly from the response
                     setAudioUrl(data.audio_url);
-                    setSuccessMessage('Latest podcast loaded');
+                    setSuccessMessage('Default podcast loaded');
                     setIsSuccess(true);
-                    console.log('Latest podcast loaded:', data.topic);
-                } else if (data && data.audio_path) {
-                    // Fallback to constructing URL from audio_path if audio_url is not present
-                    setAudioUrl(`http://localhost:8000${data.audio_path}`);
-                    setSuccessMessage('Latest podcast loaded');
-                    setIsSuccess(true);
-                    console.log('Latest podcast loaded (using path):', data.topic);
+                    console.log('Default podcast loaded:', data.topic);
                 } else {
-                    console.log('No podcasts found or no audio URL available');
+                    console.log('No podcasts found on server');
                 }
             } else {
                 console.error('Error fetching latest podcast:', await response.text());
             }
         } catch (error) {
             console.error('Error checking for existing podcast:', error);
+        }
+    };
+
+    const checkAudioFileExists = async (url) => {
+        try {
+            const response = await fetch(url, { method: 'HEAD' });
+            return response.ok;
+        } catch (error) {
+            console.error('Error checking audio file:', error);
+            return false;
         }
     };
 
@@ -246,25 +250,78 @@ const Home = () => {
     const handleSeek = (e) => {
         if (!audioRef.current || !audioUrl) return;
 
-        // Check if duration is valid
-        if (isNaN(audioRef.current.duration) || audioRef.current.duration <= 0) {
-            console.warn('Cannot seek: Invalid audio duration');
-            return;
-        }
-
         const progressBar = e.currentTarget;
         const rect = progressBar.getBoundingClientRect();
         const clickPosition = (e.clientX - rect.left) / rect.width;
 
         // Ensure clickPosition is between 0 and 1
         const normalizedPosition = Math.max(0, Math.min(1, clickPosition));
-        const newTime = normalizedPosition * audioRef.current.duration;
+        
+        // Get the duration directly from the audio element
+        const audioDuration = audioRef.current.duration;
+        
+        if (isNaN(audioDuration) || audioDuration <= 0) {
+            console.warn('Cannot seek: Invalid audio duration');
+            return;
+        }
 
-        console.log(`Seeking to ${formatTime(newTime)} (${normalizedPosition * 100}%)`);
+        const newTime = normalizedPosition * audioDuration;
 
-        // Update audio time
-        audioRef.current.currentTime = newTime;
-        setCurrentTime(newTime);
+        try {
+            setIsSeeking(true);
+            
+            // Update the visual position immediately for better UX
+            setCurrentTime(newTime);
+            
+            // Update audio time
+            audioRef.current.currentTime = newTime;
+            
+            // If was playing, continue playing after seek
+            if (isPlaying) {
+                const playPromise = audioRef.current.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.error('Error resuming playback after seek:', error);
+                    });
+                }
+            }
+            
+            console.log(`Seeking to ${formatTime(newTime)} (${(normalizedPosition * 100).toFixed(2)}%)`);
+        } catch (error) {
+            console.error('Error during seek:', error);
+            // Revert to actual current time on error
+            setCurrentTime(audioRef.current.currentTime);
+        } finally {
+            setIsSeeking(false);
+        }
+    };
+
+    // Add mouse event handlers for smoother seeking
+    const handleProgressBarMouseDown = (e) => {
+        if (!audioRef.current || !audioUrl) return;
+        setIsSeeking(true);
+        handleSeek(e);
+        document.addEventListener('mousemove', handleProgressBarMouseMove);
+        document.addEventListener('mouseup', handleProgressBarMouseUp);
+    };
+
+    const handleProgressBarMouseMove = (e) => {
+        if (isSeeking) {
+            handleSeek(e);
+        }
+    };
+
+    const handleProgressBarMouseUp = () => {
+        setIsSeeking(false);
+        document.removeEventListener('mousemove', handleProgressBarMouseMove);
+        document.removeEventListener('mouseup', handleProgressBarMouseUp);
+    };
+
+    // Update the time update handler
+    const handleTimeUpdate = () => {
+        if (audioRef.current && !isSeeking) {
+            setCurrentTime(audioRef.current.currentTime);
+        }
     };
 
     const formatTime = (time) => {
@@ -660,7 +717,7 @@ const Home = () => {
                                     </button>
                                     <div
                                         className="player-progress"
-                                        onClick={audioUrl ? handleSeek : undefined}
+                                        onMouseDown={handleProgressBarMouseDown}
                                         style={{ cursor: audioUrl ? 'pointer' : 'not-allowed' }}
                                     >
                                         <div className="progress-bar">
@@ -678,14 +735,11 @@ const Home = () => {
                                 </div>
                                 <audio
                                     ref={audioRef}
-                                    src={audioUrl || undefined}
+                                    src={audioUrl}
                                     preload="metadata"
-                                    onError={(e) => {
-                                        console.error('Audio element error event:', e);
-                                        console.error('Audio error details:', e.target.error);
-                                        setSuccessMessage('Error loading audio. Please try again.');
-                                        setIsSuccess(false);
-                                    }}
+                                    onTimeUpdate={handleTimeUpdate}
+                                    onLoadStart={() => setIsAudioLoading(true)}
+                                    onCanPlay={() => setIsAudioLoading(false)}
                                     onLoadedMetadata={(e) => {
                                         console.log('Audio metadata loaded successfully');
                                         console.log('Audio duration from event:', e.target.duration);
@@ -703,6 +757,15 @@ const Home = () => {
                                             }
                                             setDuration(e.target.duration);
                                         }
+                                    }}
+                                    onError={(e) => {
+                                        console.error('Audio element error:', e);
+                                        if (e.target.error) {
+                                            console.error('Audio error details:', e.target.error);
+                                        }
+                                        setIsAudioLoading(false);
+                                        setSuccessMessage('Error loading audio. Please try again.');
+                                        setIsSuccess(false);
                                     }}
                                 />
                             </div>
@@ -736,6 +799,7 @@ const Home = () => {
                     Create in workflows <FaArrowRight />
                 </button>
             </div>
+            {isAudioLoading && <div>Loading audio...</div>}
         </div>
     );
 };
