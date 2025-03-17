@@ -62,7 +62,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    height: calc(100% - 5rem);
+    height: calc(100% - 8rem);
     border: 2px dashed rgba(99, 102, 241, 0.2);
     border-radius: 8px;
     font-size: 1.25rem;
@@ -1121,6 +1121,10 @@ span.info-icon {
     border-left: 3px solid rgba(239, 68, 68, 0.5);
 }
 
+.home-container .insights-container {
+    height: 49vh;
+}
+
 .debate-section .agent-response.believer {
     margin-left: 2rem;
     margin-right: 0;
@@ -1144,4 +1148,11 @@ span.info-icon {
 /* Light theme adjustments */
 .light .debate-section .agent-header h4 {
     color: #4f46e5;
+}
+
+.light .home-hero-content h1 {
+    background: linear-gradient(0.25turn, #000, #fff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }

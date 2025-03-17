@@ -13,7 +13,7 @@ from .models import (
     UserCreate, UserLogin, Token, UserUpdate, UserResponse,
     PodcastRequest, PodcastResponse, AgentCreate, AgentResponse,
     TextPodcastRequest, TextPodcastResponse,
-    WorkflowCreate, WorkflowResponse
+    WorkflowCreate, WorkflowResponse, InsightsData, TranscriptEntry
 )
 from .agents.researcher import research_topic, research_topic_stream
 from .agents.debaters import generate_debate, generate_debate_stream, chunk_text
@@ -51,8 +51,12 @@ app.add_middleware(
 os.makedirs("temp", exist_ok=True)
 os.makedirs("temp_audio", exist_ok=True)
 
+# Make sure the directory paths are absolute
+TEMP_AUDIO_DIR = os.path.abspath("temp_audio")
+print(f"Mounting temp_audio directory: {TEMP_AUDIO_DIR}")
+
 # Mount static directory for audio files
-app.mount("/audio", StaticFiles(directory="temp_audio"), name="audio")
+app.mount("/audio", StaticFiles(directory=TEMP_AUDIO_DIR), name="audio")
 
 # Security
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -450,35 +454,50 @@ async def list_agents(current_user: dict = Depends(get_current_user)):
 @app.post("/agents/test-voice")
 async def test_agent_voice(request: Request):
     try:
+        # Parse request body
         data = await request.json()
         text = data.get("text")
         voice_id = data.get("voice_id")
+        emotion = data.get("emotion", "neutral")  # Default emotion
         speed = data.get("speed", 1.0)
-        pitch = data.get("pitch", 1.0)
-        volume = data.get("volume", 1.0)
 
+        # Log the received request
+        logger.info(f"Test voice request received: voice_id={voice_id}, text={text[:30]}...")
+        
         if not text or not voice_id:
-            raise HTTPException(status_code=400, detail="Missing required fields")
+            logger.error("Missing required fields in test voice request")
+            raise HTTPException(status_code=400, detail="Missing required fields (text or voice_id)")
 
         # Initialize the podcast manager
         manager = PodcastManager()
 
         # Generate a unique filename for this test
         test_filename = f"test_{voice_id}_{int(time.time())}.mp3"
-        output_path = os.path.join("temp", test_filename)
+        output_dir = os.path.join("temp_audio", f"test_{int(time.time())}")
+        os.makedirs(output_dir, exist_ok=True)
+        output_path = os.path.join(output_dir, test_filename)
+
+        logger.info(f"Generating test audio to {output_path}")
 
         # Generate the speech
         success = manager.generate_speech(text, voice_id, output_path)
 
         if not success:
+            logger.error("Failed to generate test audio")
             raise HTTPException(status_code=500, detail="Failed to generate test audio")
 
+        # Construct the audio URL
+        audio_url = f"/audio/{os.path.basename(output_dir)}/{test_filename}"
+        full_audio_url = f"http://localhost:8000{audio_url}"
+        
+        logger.info(f"Test audio generated successfully at {full_audio_url}")
+
         # Return the full URL to the generated audio
-        return {"audio_url": f"http://localhost:8000/audio/{test_filename}"}
+        return {"audio_url": full_audio_url, "status": "success"}
 
     except Exception as e:
-        logger.error(f"Error in test_agent_voice: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error in test_agent_voice: {str(e)}", exc_info=True)
+        return {"error": str(e), "status": "error", "audio_url": None}
 
 # Add the new PUT endpoint for updating agents
 @app.put("/agents/{agent_id}", response_model=AgentResponse)
@@ -527,8 +546,37 @@ async def update_agent(agent_id: str, agent: AgentCreate, current_user: dict = D
         }
     except Exception as e:
         logger.error(f"Error updating agent: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to update agent: {str(e)}") 
-    
+        raise HTTPException(status_code=500, detail=f"Failed to update agent: {str(e)}")
+
+@app.get("/agents/{agent_id}", response_model=AgentResponse)
+async def get_agent(agent_id: str, current_user: dict = Depends(get_current_user)):
+    """Get a specific agent by ID."""
+    try:
+        # Convert user ID to string for consistent handling
+        user_id = str(current_user["_id"])
+        
+        # Convert agent_id to ObjectId
+        from bson.objectid import ObjectId
+        agent_obj_id = ObjectId(agent_id)
+        
+        # Check if agent exists and belongs to user
+        agent = await agents.find_one({
+            "_id": agent_obj_id,
+            "user_id": user_id
+        })
+        
+        if not agent:
+            raise HTTPException(status_code=404, detail="Agent not found or unauthorized")
+            
+        # Return the agent data
+        return {
+            "agent_id": str(agent["_id"]),
+            **{k: v for k, v in agent.items() if k != "_id"}
+        }
+    except Exception as e:
+        logger.error(f"Error getting agent: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get agent: {str(e)}")
+
 @app.post("/generate-text-podcast", response_model=TextPodcastResponse)
 async def generate_text_podcast(request: TextPodcastRequest, current_user: dict = Depends(get_current_user)):
     """Generate a podcast from text input with a single voice and emotion."""
@@ -564,7 +612,9 @@ async def generate_text_podcast(request: TextPodcastRequest, current_user: dict 
             return TextPodcastResponse(
                 audio_url="",
                 status="failed",
-                error=result["error"]
+                error=result["error"],
+                duration=0,
+                updated_at=datetime.now().isoformat()
             )
         
         # Create audio URL from the audio path
@@ -576,7 +626,9 @@ async def generate_text_podcast(request: TextPodcastRequest, current_user: dict 
         return TextPodcastResponse(
             audio_url=full_audio_url,
             duration=result.get("duration", 0),
-            status="completed"
+            status="completed",
+            error=None,
+            updated_at=datetime.now().isoformat()
         )
         
     except Exception as e:
@@ -584,7 +636,9 @@ async def generate_text_podcast(request: TextPodcastRequest, current_user: dict 
         return TextPodcastResponse(
             audio_url="",
             status="failed",
-            error=str(e)
+            error=str(e),
+            duration=0,
+            updated_at=datetime.now().isoformat()
         )
   
   
@@ -642,6 +696,90 @@ async def list_workflows(current_user: dict = Depends(get_current_user)):
         print(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.put("/api/workflows/{workflow_id}", response_model=WorkflowResponse)
+async def update_workflow(workflow_id: str, workflow: WorkflowCreate, current_user: dict = Depends(get_current_user)):
+    """Update a specific workflow."""
+    try:
+        print("\n=== Debug update_workflow ===")
+        print(f"Updating workflow ID: {workflow_id}")
+        print(f"Current user: {current_user.get('username')}")
+        
+        # Prepare update data
+        now = datetime.utcnow()
+        
+        # Convert insights to dict if it's a Pydantic model
+        insights_data = workflow.insights
+        if isinstance(insights_data, InsightsData):
+            insights_data = insights_data.dict()
+            print(f"Converted InsightsData to dict: {type(insights_data)}")
+        
+        workflow_data = {
+            "name": workflow.name,
+            "description": workflow.description,
+            "nodes": workflow.nodes,
+            "edges": workflow.edges,
+            "insights": insights_data,  # Use the converted insights
+            "updated_at": now
+        }
+        
+        print(f"Update data prepared (insights type: {type(workflow_data['insights'])})")
+        
+        # Update the workflow
+        result = await workflows.update_one(
+            {"_id": ObjectId(workflow_id), "user_id": current_user.get("username")},
+            {"$set": workflow_data}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+        
+        # Get the updated workflow
+        updated_workflow = await workflows.find_one({"_id": ObjectId(workflow_id)})
+        
+        # Prepare response data
+        response_data = {
+            "id": str(updated_workflow["_id"]),
+            "name": updated_workflow["name"],
+            "description": updated_workflow.get("description", ""),
+            "nodes": updated_workflow.get("nodes", []),
+            "edges": updated_workflow.get("edges", []),
+            "insights": updated_workflow.get("insights", ""),  # Add insights field
+            "user_id": updated_workflow["user_id"],
+            "created_at": updated_workflow["created_at"].isoformat() if "created_at" in updated_workflow else None,
+            "updated_at": updated_workflow["updated_at"].isoformat() if "updated_at" in updated_workflow else None
+        }
+        
+        print(f"Response data prepared (insights type: {type(response_data['insights'])})")
+        
+        # Create and validate the response model
+        response = WorkflowResponse(**response_data)
+        print(f"Validated response: {response}")
+        print("=== End Debug ===\n")
+        
+        return response
+    except Exception as e:
+        print(f"Error in update_workflow: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/workflows/{workflow_id}")
+async def delete_workflow(workflow_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete a specific workflow."""
+    try:
+        result = await workflows.delete_one({
+            "_id": ObjectId(workflow_id),
+            "user_id": current_user.get("username")  # This is actually the email from the token
+        })
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+            
+        return {"message": "Workflow deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/workflows", response_model=WorkflowResponse)
 async def create_workflow(workflow: WorkflowCreate, current_user: dict = Depends(get_current_user)):
     try:
@@ -653,6 +791,12 @@ async def create_workflow(workflow: WorkflowCreate, current_user: dict = Depends
         user_id = current_user.get("username")  # This is actually the email from the token
         print(f"Using user_id (email): {user_id}")
         
+        # Convert insights to dict if it's a Pydantic model
+        insights_data = workflow.insights
+        if isinstance(insights_data, InsightsData):
+            insights_data = insights_data.dict()
+            print(f"Converted InsightsData to dict: {type(insights_data)}")
+        
         # Create workflow data
         now = datetime.utcnow()
         workflow_data = {
@@ -660,12 +804,13 @@ async def create_workflow(workflow: WorkflowCreate, current_user: dict = Depends
             "description": workflow.description,
             "nodes": workflow.nodes,
             "edges": workflow.edges,
+            "insights": insights_data,  # Use the converted insights
             "user_id": user_id,
             "created_at": now,
             "updated_at": now
         }
         
-        print(f"Workflow data before insert: {workflow_data}")
+        print(f"Workflow data prepared (insights type: {type(workflow_data['insights'])})")
         
         # Insert into database
         result = await workflows.insert_one(workflow_data)
@@ -677,12 +822,13 @@ async def create_workflow(workflow: WorkflowCreate, current_user: dict = Depends
             "description": workflow_data["description"],
             "nodes": workflow_data["nodes"],
             "edges": workflow_data["edges"],
+            "insights": workflow_data.get("insights"),  # Add insights field
             "user_id": workflow_data["user_id"],
             "created_at": workflow_data["created_at"].isoformat(),
             "updated_at": workflow_data["updated_at"].isoformat()
         }
         
-        print(f"Response data: {response_data}")
+        print(f"Response data prepared (insights type: {type(response_data['insights'])})")
         
         # Create and validate the response model
         response = WorkflowResponse(**response_data)
@@ -734,6 +880,7 @@ async def get_workflow(workflow_id: str, current_user: dict = Depends(get_curren
             "description": workflow.get("description", ""),
             "nodes": workflow.get("nodes", []),
             "edges": workflow.get("edges", []),
+            "insights": workflow.get("insights", ""),  # Add insights field
             "user_id": workflow["user_id"],
             "created_at": workflow.get("created_at"),
             "updated_at": workflow.get("updated_at")
@@ -753,79 +900,4 @@ async def get_workflow(workflow_id: str, current_user: dict = Depends(get_curren
         print(f"Error type: {type(e)}")
         import traceback
         print(f"Traceback: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.put("/api/workflows/{workflow_id}", response_model=WorkflowResponse)
-async def update_workflow(workflow_id: str, workflow: WorkflowCreate, current_user: dict = Depends(get_current_user)):
-    """Update a specific workflow."""
-    try:
-        print("\n=== Debug update_workflow ===")
-        print(f"Updating workflow ID: {workflow_id}")
-        print(f"Current user: {current_user.get('username')}")
-        
-        # Prepare update data
-        now = datetime.utcnow()
-        workflow_data = {
-            "name": workflow.name,
-            "description": workflow.description,
-            "nodes": workflow.nodes,
-            "edges": workflow.edges,
-            "updated_at": now
-        }
-        
-        print(f"Update data: {workflow_data}")
-        
-        # Update the workflow
-        result = await workflows.update_one(
-            {"_id": ObjectId(workflow_id), "user_id": current_user.get("username")},
-            {"$set": workflow_data}
-        )
-        
-        if result.modified_count == 0:
-            raise HTTPException(status_code=404, detail="Workflow not found")
-        
-        # Get the updated workflow
-        updated_workflow = await workflows.find_one({"_id": ObjectId(workflow_id)})
-        
-        # Prepare response data
-        response_data = {
-            "id": str(updated_workflow["_id"]),
-            "name": updated_workflow["name"],
-            "description": updated_workflow.get("description", ""),
-            "nodes": updated_workflow.get("nodes", []),
-            "edges": updated_workflow.get("edges", []),
-            "user_id": updated_workflow["user_id"],
-            "created_at": updated_workflow["created_at"].isoformat() if "created_at" in updated_workflow else None,
-            "updated_at": updated_workflow["updated_at"].isoformat() if "updated_at" in updated_workflow else None
-        }
-        
-        print(f"Response data: {response_data}")
-        
-        # Create and validate the response model
-        response = WorkflowResponse(**response_data)
-        print(f"Validated response: {response}")
-        print("=== End Debug ===\n")
-        
-        return response
-    except Exception as e:
-        print(f"Error in update_workflow: {str(e)}")
-        print(f"Error type: {type(e)}")
-        import traceback
-        print(f"Traceback: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.delete("/api/workflows/{workflow_id}")
-async def delete_workflow(workflow_id: str, current_user: dict = Depends(get_current_user)):
-    """Delete a specific workflow."""
-    try:
-        result = await workflows.delete_one({
-            "_id": ObjectId(workflow_id),
-            "user_id": current_user.get("username")  # This is actually the email from the token
-        })
-        
-        if result.deleted_count == 0:
-            raise HTTPException(status_code=404, detail="Workflow not found")
-            
-        return {"message": "Workflow deleted successfully"}
-    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) 

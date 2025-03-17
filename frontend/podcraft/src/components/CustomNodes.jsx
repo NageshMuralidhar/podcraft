@@ -33,8 +33,11 @@ const BaseNode = ({ data, nodeType, icon: IconComponent, color, showSourceHandle
         // Additional inline styles can be added here
     };
 
+    // Check if this is an input node with a prompt
+    const hasPrompt = nodeType === 'input-node' && data.prompt;
+
     return (
-        <div className={`custom-node ${nodeType}-node`} style={nodeStyle}>
+        <div className={`custom-node ${nodeType}-node ${data.prompt ? 'has-prompt' : ''}`} style={nodeStyle}>
             {showTargetHandle && (
                 <Handle
                     type="target"
@@ -53,6 +56,11 @@ const BaseNode = ({ data, nodeType, icon: IconComponent, color, showSourceHandle
                 </div>
                 {data.description && (
                     <div className="node-description">{data.description}</div>
+                )}
+                {data.prompt && nodeType === 'input-node' && (
+                    <div className="node-prompt">
+                        <div className="prompt-indicator">Prompt set ✓</div>
+                    </div>
                 )}
             </div>
 

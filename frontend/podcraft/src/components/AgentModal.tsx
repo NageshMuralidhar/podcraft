@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaPlay, FaSave, FaTimes, FaChevronDown, FaVolumeUp } from 'react-icons/fa';
 import './AgentModal.css';
-import { BsRobot } from "react-icons/bs";
+import { BsRobot, BsToggleOff, BsToggleOn } from "react-icons/bs";
 import Toast from './Toast';
 
 
@@ -19,6 +19,8 @@ type FormData = {
     volume: number;
     outputFormat: 'mp3' | 'wav';
     testInput: string;
+    personality: string;
+    showPersonality: boolean;
 };
 
 const VOICE_OPTIONS: Voice[] = [
@@ -44,6 +46,7 @@ interface AgentModalProps {
         pitch: number;
         volume: number;
         output_format: string;
+        personality: string;
     } | null;
 }
 
@@ -55,12 +58,14 @@ const AgentModal: React.FC<AgentModalProps> = ({ isOpen, onClose, editAgent }) =
         pitch: 1,
         volume: 1,
         outputFormat: 'mp3',
-        testInput: ''
+        testInput: '',
+        personality: '',
+        showPersonality: false
     });
 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
     const [audioPlayer, setAudioPlayer] = useState<HTMLAudioElement | null>(null);
     const [isTestingVoice, setIsTestingVoice] = useState(false);
 
@@ -80,7 +85,9 @@ const AgentModal: React.FC<AgentModalProps> = ({ isOpen, onClose, editAgent }) =
                 pitch: editAgent.pitch || 1,
                 volume: editAgent.volume || 1,
                 outputFormat: validOutputFormat,
-                testInput: ''
+                testInput: '',
+                personality: editAgent.personality || '',
+                showPersonality: !!editAgent.personality
             });
         } else {
             // Reset form when not editing
@@ -91,7 +98,9 @@ const AgentModal: React.FC<AgentModalProps> = ({ isOpen, onClose, editAgent }) =
                 pitch: 1,
                 volume: 1,
                 outputFormat: 'mp3',
-                testInput: ''
+                testInput: '',
+                personality: '',
+                showPersonality: false
             });
         }
     }, [editAgent]);
@@ -134,6 +143,7 @@ const AgentModal: React.FC<AgentModalProps> = ({ isOpen, onClose, editAgent }) =
             const token = localStorage.getItem('token');
             if (!token) {
                 setToast({ message: 'Authentication token not found', type: 'error' });
+                setIsTestingVoice(false);
                 return;
             }
 
@@ -144,14 +154,17 @@ const AgentModal: React.FC<AgentModalProps> = ({ isOpen, onClose, editAgent }) =
                 setAudioPlayer(null);
             }
 
+            // Prepare test data
             const testData = {
                 text: formData.testInput.trim(),
-                voice_id: formData.voice?.id,
-                speed: formData.speed,
-                pitch: formData.pitch,
-                volume: formData.volume
+                voice_id: formData.voice?.id || 'alloy',
+                emotion: 'neutral',  // Default emotion
+                speed: formData.speed
             };
 
+            console.log('Sending test data:', JSON.stringify(testData, null, 2));
+
+            // Make API request
             const response = await fetch('http://localhost:8000/agents/test-voice', {
                 method: 'POST',
                 headers: {
@@ -161,26 +174,35 @@ const AgentModal: React.FC<AgentModalProps> = ({ isOpen, onClose, editAgent }) =
                 body: JSON.stringify(testData)
             });
 
+            console.log('Response status:', response.status);
             const data = await response.json();
+            console.log('Response data:', JSON.stringify(data, null, 2));
 
             if (!response.ok) {
                 throw new Error(data.detail || 'Failed to test voice');
             }
 
+            if (!data.audio_url) {
+                throw new Error('No audio URL returned from server');
+            }
+
+            setToast({ message: 'Creating audio player...', type: 'info' });
+
             // Create and configure new audio player
             const newPlayer = new Audio();
 
             // Set up event handlers before setting the source
-            newPlayer.onerror = () => {
-                console.error('Audio loading error:', newPlayer.error);
+            newPlayer.onerror = (e) => {
+                console.error('Audio loading error:', newPlayer.error, e);
                 setToast({
-                    message: 'Failed to load audio file',
+                    message: `Failed to load audio file: ${newPlayer.error?.message || 'Unknown error'}`,
                     type: 'error'
                 });
                 setIsTestingVoice(false);
             };
 
             newPlayer.oncanplaythrough = () => {
+                console.log('Audio can play through, starting playback');
                 newPlayer.play()
                     .then(() => {
                         setToast({ message: 'Playing test audio', type: 'success' });
@@ -188,20 +210,37 @@ const AgentModal: React.FC<AgentModalProps> = ({ isOpen, onClose, editAgent }) =
                     .catch((error) => {
                         console.error('Playback error:', error);
                         setToast({
-                            message: 'Failed to play audio',
+                            message: `Failed to play audio: ${error.message}`,
                             type: 'error'
                         });
+                        setIsTestingVoice(false);
                     });
             };
 
             newPlayer.onended = () => {
+                console.log('Audio playback ended');
                 setIsTestingVoice(false);
             };
+
+            // Log the audio URL we're trying to play
+            console.log('Setting audio source to:', data.audio_url);
 
             // Set the source and start loading
             newPlayer.src = data.audio_url;
             setAudioPlayer(newPlayer);
-            await newPlayer.load();
+
+            // Try to load the audio
+            try {
+                await newPlayer.load();
+                console.log('Audio loaded successfully');
+            } catch (loadError) {
+                console.error('Error loading audio:', loadError);
+                setToast({
+                    message: `Error loading audio: ${loadError instanceof Error ? loadError.message : 'Unknown error'}`,
+                    type: 'error'
+                });
+                setIsTestingVoice(false);
+            }
 
         } catch (error) {
             console.error('Error testing voice:', error);
@@ -222,6 +261,13 @@ const AgentModal: React.FC<AgentModalProps> = ({ isOpen, onClose, editAgent }) =
             }
         };
     }, [audioPlayer]);
+
+    const toggleInputType = () => {
+        setFormData(prev => ({
+            ...prev,
+            showPersonality: !prev.showPersonality
+        }));
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -245,7 +291,8 @@ const AgentModal: React.FC<AgentModalProps> = ({ isOpen, onClose, editAgent }) =
                 speed: formData.speed,
                 pitch: formData.pitch,
                 volume: formData.volume,
-                output_format: formData.outputFormat // Use snake_case to match backend
+                output_format: formData.outputFormat, // Use snake_case to match backend
+                personality: formData.showPersonality ? formData.personality : null
             };
 
             console.log('Request data:', JSON.stringify(requestData, null, 2));
@@ -431,27 +478,56 @@ const AgentModal: React.FC<AgentModalProps> = ({ isOpen, onClose, editAgent }) =
                         </div>
                     </div>
 
-                    <div className="form-group">
-                        <label htmlFor="testInput">Test Input</label>
-                        <textarea
-                            id="testInput"
-                            name="testInput"
-                            value={formData.testInput}
-                            onChange={handleInputChange}
-                            placeholder="Enter text to test the voice"
-                            rows={4}
-                        />
+                    <div className="form-group toggle-group">
+                        <label>Input Type</label>
+                        <div className="toggle-container" onClick={toggleInputType}>
+                            <span className={!formData.showPersonality ? 'active' : ''}>Test Input</span>
+                            {formData.showPersonality ?
+                                <BsToggleOn className="toggle-icon" /> :
+                                <BsToggleOff className="toggle-icon" />
+                            }
+                            <span className={formData.showPersonality ? 'active' : ''}>Agent Personality</span>
+                        </div>
                     </div>
 
+                    {formData.showPersonality ? (
+                        <div className="form-group">
+                            <label htmlFor="personality">Agent Personality</label>
+                            <textarea
+                                id="personality"
+                                name="personality"
+                                value={formData.personality}
+                                onChange={handleInputChange}
+                                placeholder="Describe the personality and characteristics of this agent..."
+                                rows={4}
+                            />
+                            <small className="help-text">This personality description will be used to guide the agent's responses in workflows.</small>
+                        </div>
+                    ) : (
+                        <div className="form-group">
+                            <label htmlFor="testInput">Test Input</label>
+                            <textarea
+                                id="testInput"
+                                name="testInput"
+                                value={formData.testInput}
+                                onChange={handleInputChange}
+                                placeholder="Enter text to test the voice"
+                                rows={4}
+                            />
+                        </div>
+                    )}
+
                     <div className="modal-actions">
-                        <button
-                            type="button"
-                            className="test-voice-btn"
-                            onClick={handleTestVoice}
-                            disabled={!formData.testInput || isTestingVoice}
-                        >
-                            <FaPlay /> {isTestingVoice ? 'Testing...' : 'Test Voice'}
-                        </button>
+                        {!formData.showPersonality && (
+                            <button
+                                type="button"
+                                className="test-voice-btn"
+                                onClick={handleTestVoice}
+                                disabled={!formData.testInput || isTestingVoice}
+                            >
+                                <FaPlay /> {isTestingVoice ? 'Testing...' : 'Test Voice'}
+                            </button>
+                        )}
                         <div className="right-actions">
                             <button type="button" className="cancel-btn" onClick={onClose}>
                                 Cancel

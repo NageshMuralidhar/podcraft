@@ -12,11 +12,21 @@
     font-weight: 500;
     opacity: 0;
     transform: translateY(20px);
-    animation: workflowToastIn 0.3s ease forwards, workflowToastOut 0.3s ease 2.7s forwards;
+    animation: workflowToastIn 0.3s ease forwards, workflowToastOut 0.3s ease 4.7s forwards;
     border: 1px solid rgba(255, 255, 255, 0.1);
     min-width: 200px;
     max-width: 400px;
     margin: 0 auto;
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    z-index: 10000;
+}
+
+.workflow-toast.visible {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
 }
 
 .workflow-toast-icon {
@@ -58,27 +68,71 @@
     color: #3b82f6;
 }
 
+/* Special styling for podcast toasts */
+.workflow-toast.podcast-toast {
+    border-left: 4px solid #6366f1;
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.2) 0%, rgba(99, 102, 241, 0.2) 100%), rgba(30, 30, 40, 0.95);
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3), 0 0 0 1px rgba(99, 102, 241, 0.3);
+    animation: none;
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    animation: workflowToastIn 0.4s ease forwards, workflowPodcastOut 0.5s ease 4.5s forwards;
+}
+
+.workflow-toast.podcast-toast .workflow-toast-icon {
+    color: #6366f1;
+    font-size: 1.3rem;
+    transform: scale(1);
+    animation: pulseIcon 2s infinite;
+}
+
+@keyframes pulseIcon {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
 @keyframes workflowToastIn {
     from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateX(-50%) translateY(20px);
     }
 
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateX(-50%) translateY(0);
     }
 }
 
 @keyframes workflowToastOut {
     from {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateX(-50%) translateY(0);
     }
 
     to {
         opacity: 0;
-        transform: translateY(-20px);
+        transform: translateX(-50%) translateY(-20px);
+    }
+}
+
+@keyframes workflowPodcastOut {
+    from {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px) rotate(-2deg);
     }
 }
 
@@ -88,4 +142,9 @@
     color: #333;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+:root[data-theme="light"] .workflow-toast.podcast-toast {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%), rgba(255, 255, 255, 0.95);
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.2), 0 0 0 1px rgba(99, 102, 241, 0.2);
 }

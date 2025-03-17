@@ -56,6 +56,10 @@ class PodcastManager:
             
             print(f"Final voice selection: {voice}")
 
+            # Ensure the output directory exists
+            output_dir = os.path.dirname(filename)
+            os.makedirs(output_dir, exist_ok=True)
+
             payload = {
                 "model": "tts-1",
                 "input": text,
@@ -63,25 +67,28 @@ class PodcastManager:
             }
             
             print(f"TTS API payload: {json.dumps(payload, indent=2)}")
-            print(f"Request headers: {json.dumps(self.headers, indent=2)}")
+            print(f"Request headers: {json.dumps({k: '***' if k == 'Authorization' else v for k, v in self.headers.items()}, indent=2)}")
 
             response = requests.post(self.tts_url, json=payload, headers=self.headers)
-            response.raise_for_status()  # Raises an exception for 4XX/5XX responses
+            if response.status_code != 200:
+                print(f"API error response: {response.status_code} - {response.text}")
+                return False
+                
+            # Write the audio content to the file
+            with open(filename, "wb") as f:
+                f.write(response.content)
             
-            if response.status_code == 200:
-                # Ensure directory exists
-                os.makedirs(os.path.dirname(filename), exist_ok=True)
-                with open(filename, "wb") as f:
-                    f.write(response.content)
-                print(f"Successfully generated speech file: {filename}")
-                return True
-            else:
-                logger.error(f"API error: {response.status_code} - {response.text}")
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"External API error: {response.status_code}"
-                )
+            print(f"Successfully generated speech file: {filename}")
+            print(f"File size: {os.path.getsize(filename)} bytes")
+            
+            # Verify the file exists and has content
+            if not os.path.exists(filename) or os.path.getsize(filename) == 0:
+                print(f"Error: Generated file is empty or does not exist: {filename}")
+                return False
+                
+            return True
         except Exception as e:
+            print(f"Error generating speech: {str(e)}")
             logger.exception(f"Error generating speech: {str(e)}")
             return False
 
@@ -284,6 +291,26 @@ class PodcastManager:
             
             if not self.merge_audio_files(audio_files, final_audio):
                 raise Exception("Failed to merge audio files")
+                
+            # Calculate audio duration using ffprobe
+            duration = 0
+            try:
+                cmd = [
+                    'ffprobe', 
+                    '-v', 'error', 
+                    '-show_entries', 'format=duration', 
+                    '-of', 'default=noprint_wrappers=1:nokey=1', 
+                    final_audio
+                ]
+                duration_result = subprocess.run(cmd, capture_output=True, text=True)
+                if duration_result.returncode == 0:
+                    duration = float(duration_result.stdout.strip())
+                    print(f"Audio duration: {duration} seconds")
+                else:
+                    print(f"Failed to get audio duration: {duration_result.stderr}")
+            except Exception as e:
+                print(f"Error calculating duration: {str(e)}")
+                # Don't fail the entire process for duration calculation
 
             podcast_doc = {
                 "topic": topic,
@@ -293,7 +320,8 @@ class PodcastManager:
                 "created_at": datetime.utcnow(),
                 "believer_voice_id": believer_voice_id,
                 "skeptic_voice_id": skeptic_voice_id,
-                "user_id": user_id
+                "user_id": user_id,
+                "duration": duration  # Add duration to MongoDB document
             }
 
             result = await podcasts.insert_one(podcast_doc)
@@ -306,7 +334,8 @@ class PodcastManager:
             return {
                 "podcast_id": str(result.inserted_id),
                 "audio_path": final_audio,
-                "topic": topic
+                "topic": topic,
+                "duration": duration  # Return duration in the result
             }
 
         except Exception as e:
@@ -317,14 +346,6 @@ class PodcastManager:
             return {
                 "error": str(e)
             }
-        # finally:
-        #     # Clean up temporary files
-        #     for temp_file in [list_file, silence_file]:
-        #         if os.path.exists(temp_file):
-        #             try:
-        #                 os.remove(temp_file)
-        #             except Exception as e:
-        #                 logger.warning(f"Failed to remove temporary file {temp_file}: {e}")
 
     async def get_podcast(self, podcast_id: str) -> Dict:
         """Retrieve a podcast by ID."""
