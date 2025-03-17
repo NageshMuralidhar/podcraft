@@ -255,6 +255,12 @@
     pointer-events: auto;
 }
 
+/* Make sure the ReactFlow nodes are clean without inheriting backgrounds */
+.react-flow__node {
+    background: none !important;
+    box-shadow: none !important;
+}
+
 .flow-controls {
     position: absolute;
     top: 1rem;
@@ -2217,4 +2223,51 @@ select option:checked {
 
 :root[data-theme="light"] .clickable-bubble:hover::after {
     background: rgba(99, 102, 241, 0.8);
+}
+
+/* Podcast Generation Button Container Styles */
+.podcast-generation-button-container {
+    margin-top: 30px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.podcast-from-debate-btn {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+    width: auto;
+    min-width: 280px;
+}
+
+.podcast-from-debate-btn:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+    background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+}
+
+.podcast-from-debate-btn svg {
+    font-size: 1.3rem;
+    margin-right: 8px;
+}
+
+.podcast-from-debate-btn:disabled {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.5) 0%, rgba(99, 102, 241, 0.5) 100%);
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* Light theme adjustments */
+:root[data-theme="light"] .podcast-from-debate-btn {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    color: white;
+}
+
+:root[data-theme="light"] .podcast-from-debate-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
 }

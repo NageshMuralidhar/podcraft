@@ -14,7 +14,7 @@ import ReactFlow, {
     applyNodeChanges,
     Panel
 } from 'reactflow';
-import { FaArrowLeft, FaSave, FaTrash, FaPlay, FaTimes, FaPencilAlt, FaCheck, FaPause, FaVolumeUp, FaUserCog, FaPlus, FaChevronDown, FaMicrophone, FaSearch } from 'react-icons/fa';
+import { FaArrowLeft, FaSave, FaTrash, FaPlay, FaTimes, FaPencilAlt, FaCheck, FaPause, FaVolumeUp, FaUserCog, FaPlus, FaChevronDown, FaMicrophone, FaSearch, FaPodcast } from 'react-icons/fa';
 import { TiFlowMerge } from "react-icons/ti";
 import { RiRobot2Fill } from "react-icons/ri";
 import { BsToggle2Off, BsToggle2On } from "react-icons/bs";
@@ -2011,6 +2011,85 @@ Understanding this topic has significant implications for policy, practice, and 
         // Extract key parts from the insights data
         const { topic, research, transcript, keyInsights, conclusion } = data;
 
+        // Function to generate podcast from the transcript
+        const handleGenerateDebatePodcast = async () => {
+            // Set generating state and clear any previous audio
+            setIsGenerating(true);
+            setAudioUrl('');
+            setSuccessMessage('');
+
+            try {
+                // Filter out the researcher agent messages and format the transcript for the podcast
+                const agentTranscript = transcript.filter(entry => entry.agentId !== 'researcher');
+
+                if (agentTranscript.length === 0) {
+                    throw new Error("No agent messages found to generate a podcast");
+                }
+
+                // Combine all agent messages into one cohesive script
+                // Format it as a debate with clear speaker identification
+                let podcastScript = `Let's discuss ${topic}.\n\n`;
+
+                agentTranscript.forEach(entry => {
+                    podcastScript += `${entry.agentName}: ${entry.content || entry.response}\n\n`;
+                });
+
+                // Add a conclusion
+                podcastScript += `In conclusion: ${conclusion}`;
+
+                console.log('Generating podcast from script:', podcastScript.substring(0, 100) + '...');
+
+                // Use the text-podcast endpoint to generate the audio
+                const response = await fetch('http://localhost:8000/generate-text-podcast', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        text: podcastScript,
+                        voice_id: 'nova', // Use a default voice or add a selection option
+                        emotion: 'neutral',
+                        speed: 1.0
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Failed to generate podcast');
+                }
+
+                const data = await response.json();
+                console.log('Debate podcast generated:', data);
+
+                if (data.audio_url) {
+                    setAudioUrl(data.audio_url);
+
+                    // Show success toast
+                    setToast({
+                        message: `Your debate podcast has been created! Click play to listen (${Math.ceil(data.duration || 0)}s)`,
+                        type: 'podcast'  // Use 'podcast' type for special styling
+                    });
+
+                    // Scroll to the audio player section
+                    const audioPlayer = document.querySelector('.audio-player');
+                    if (audioPlayer) {
+                        audioPlayer.scrollIntoView({ behavior: 'smooth' });
+                    }
+                } else {
+                    throw new Error('No audio URL returned from server');
+                }
+            } catch (error) {
+                console.error('Error generating podcast:', error);
+                setToast({
+                    message: `Error generating podcast: ${error.message}`,
+                    type: 'error'
+                });
+            } finally {
+                setIsGenerating(false);
+            }
+        };
+
         return (
             <div className="insights-container">
                 <h1>{topic}</h1>
@@ -2072,6 +2151,27 @@ Understanding this topic has significant implications for policy, practice, and 
                 <h2>Conclusion</h2>
                 <div className="conclusion-section">
                     <p>{conclusion}</p>
+                </div>
+
+                {/* Podcast Generation Button */}
+                <div className="podcast-generation-button-container">
+                    <button
+                        className="generate-button podcast-from-debate-btn"
+                        onClick={handleGenerateDebatePodcast}
+                        disabled={isGenerating || !Array.isArray(transcript) || transcript.length === 0}
+                    >
+                        {isGenerating ? (
+                            <>
+                                <div className="button-spinner"></div>
+                                <span>Generating Podcast...</span>
+                            </>
+                        ) : (
+                            <>
+                                <FaPodcast />
+                                <span>Generate Podcast from Debate</span>
+                            </>
+                        )}
+                    </button>
                 </div>
             </div>
         );
