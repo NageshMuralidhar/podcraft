@@ -1,5 +1,5 @@
 .workflows-container {
-    width: 100%;
+    width: auto;
     height: calc(100vh - 5rem);
     padding: 2rem;
     background: rgba(15, 15, 25, 0.5);
@@ -171,8 +171,6 @@
     background: rgba(255, 255, 255, 0.1);
     border: none;
     color: rgba(255, 255, 255, 0.7);
-    width: 32px;
-    height: 32px;
     border-radius: 8px;
     display: flex;
     align-items: center;

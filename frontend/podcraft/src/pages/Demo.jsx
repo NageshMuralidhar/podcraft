@@ -7,7 +7,7 @@ function Demo() {
   const [demoResult, setDemoResult] = useState(null);
   const [audioUrl, setAudioUrl] = useState(null);
   const audioRef = useRef(null);
-  
+
   useEffect(() => {
     // When audio URL changes, log it for debugging
     if (audioUrl) {
@@ -25,12 +25,12 @@ function Demo() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!demoText.trim()) return;
-    
+
     setIsLoading(true);
     setAudioUrl(null);
-    
+
     try {
       // This is a placeholder for actual API call
       setTimeout(() => {
@@ -47,7 +47,7 @@ function Demo() {
   const handleGenerateDemo = () => {
     setIsLoading(true);
     setAudioUrl(null);
-    
+
     // Simulate loading
     setTimeout(() => {
       // Use the backend endpoint to access the audio file
@@ -67,23 +67,23 @@ function Demo() {
             </div>
           ) : audioUrl ? (
             <div className="audio-player-container">
-              <audio 
-                ref={audioRef} 
-                src={audioUrl} 
-                controls 
+              <audio
+                ref={audioRef}
+                src={audioUrl}
+                controls
                 className="audio-player"
                 onError={handleAudioError}
                 preload="auto"
               />
               <div className="audio-controls">
-                <button 
-                  onClick={() => audioRef.current?.play()} 
+                <button
+                  onClick={() => audioRef.current?.play()}
                   className="audio-control-btn"
                 >
                   Play
                 </button>
-                <button 
-                  onClick={() => audioRef.current?.pause()} 
+                <button
+                  onClick={() => audioRef.current?.pause()}
                   className="audio-control-btn"
                 >
                   Pause

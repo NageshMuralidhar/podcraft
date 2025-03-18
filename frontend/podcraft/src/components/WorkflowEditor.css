@@ -1272,6 +1272,18 @@ select option:checked {
     margin: 1rem 0;
 }
 
+.demo-container .audio-player {
+    width: 18vw;
+}
+
+.demo-container .audio-controls {
+    display: none;
+}
+
+.demo-container .audio-player-container {
+    justify-content: center;
+}
+
 .player-controls {
     display: flex;
     align-items: center;
