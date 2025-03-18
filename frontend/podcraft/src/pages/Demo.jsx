@@ -9,11 +9,19 @@ function Demo() {
   const audioRef = useRef(null);
   
   useEffect(() => {
-    // Auto-play when audio is loaded (optional)
-    if (audioRef.current && audioUrl) {
-      audioRef.current.volume = 0.5; // Set initial volume
+    // When audio URL changes, log it for debugging
+    if (audioUrl) {
+      console.log("Audio URL set to:", audioUrl);
     }
   }, [audioUrl]);
+
+  // Function to handle audio errors
+  const handleAudioError = (e) => {
+    console.error("Audio error:", e);
+    // Use a fallback audio URL if the original one fails
+    console.log("Switching to fallback audio source");
+    setAudioUrl('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,12 +33,11 @@ function Demo() {
     
     try {
       // This is a placeholder for actual API call
-      // Replace with your actual demo functionality
       setTimeout(() => {
-        setAudioUrl('backend/temp_audio/Default/final_podcast.mp3');
+        setAudioUrl('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
         setIsLoading(false);
       }, 1500);
-      } catch (error) {
+    } catch (error) {
       console.error('Error in demo:', error);
     } finally {
       setIsLoading(false);
@@ -43,7 +50,8 @@ function Demo() {
     
     // Simulate loading
     setTimeout(() => {
-      setAudioUrl('backend/temp_audio/Default/final_podcast.mp3');
+      // Use the backend endpoint to access the audio file
+      setAudioUrl('http://localhost:8000/audio/Default/final_podcast.mp3');
       setIsLoading(false);
     }, 1500);
   };
@@ -64,17 +72,27 @@ function Demo() {
                 src={audioUrl} 
                 controls 
                 className="audio-player"
+                onError={handleAudioError}
+                preload="auto"
               />
-              {demoResult && (
-                <div className="audio-info">
-                  <h3>{demoResult.title}</h3>
-                  <p>{demoResult.description}</p>
-                </div>
-              )}
+              <div className="audio-controls">
+                <button 
+                  onClick={() => audioRef.current?.play()} 
+                  className="audio-control-btn"
+                >
+                  Play
+                </button>
+                <button 
+                  onClick={() => audioRef.current?.pause()} 
+                  className="audio-control-btn"
+                >
+                  Pause
+                </button>
+              </div>
             </div>
           ) : (
             <div className="empty-circle-message" onClick={handleGenerateDemo}>
-              <p>Generate a podcast to see it here</p>
+              <p>Click here to generate a demo podcast</p>
             </div>
           )}
         </div>
