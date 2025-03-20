@@ -14,6 +14,7 @@ import ReactFlow, {
     applyNodeChanges,
     Panel
 } from 'reactflow';
+import { RiLoader4Fill } from "react-icons/ri";
 import { FaArrowLeft, FaSave, FaTrash, FaPlay, FaTimes, FaPencilAlt, FaCheck, FaPause, FaVolumeUp, FaUserCog, FaPlus, FaChevronDown, FaMicrophone, FaSearch, FaPodcast } from 'react-icons/fa';
 import { TiFlowMerge } from "react-icons/ti";
 import { RiRobot2Fill } from "react-icons/ri";
@@ -29,6 +30,7 @@ import 'reactflow/dist/style.css';
 import './WorkflowEditor.css';
 import ResponseEditModal from './ResponseEditModal';
 import ChatDetailModal from './ChatDetailModal';
+import { BsRobot } from "react-icons/bs";
 
 const initialNodes = [];
 const initialEdges = [];
@@ -2502,6 +2504,17 @@ Understanding this topic has significant implications for policy, practice, and 
                 </button>
             </div>
             <div className="editor-content">
+                {isExecuting && <div className="executing-flow-rf">
+                    <span><RiLoader4Fill /></span>
+                    <span>Please wait for this thing to work. Its a miracle its even Running!!!</span>
+                </div>}
+
+                {isGenerating && <div className="executing-flow-rf generating-podcast">
+                    <span><BsRobot /></span>
+                    <span>Generating Podcast...</span>
+                </div>}
+
+
                 <div className="editor-main">
                     <div className="flow-controls">
                         <div className="workflow-name-container">
