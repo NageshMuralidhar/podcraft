@@ -622,10 +622,14 @@ async def generate_text_podcast(request: TextPodcastRequest, current_user: dict 
             }
         ]
         
+        # Use the provided title if available, otherwise use generic title
+        podcast_title = request.title if hasattr(request, 'title') and request.title else f"Text Podcast {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        podcast_description = request.text[:150] + "..." if len(request.text) > 150 else request.text
+        
         # Create podcast using TTS
         result = await podcast_manager.create_podcast(
-            topic=f"Text Podcast {datetime.now().strftime('%Y-%m-%d %H:%M')}",
-            research="Text-based podcast generation",
+            topic=podcast_title,
+            research=podcast_description,
             conversation_blocks=conversation_blocks,
             believer_voice_id=request.voice_id,  # Using same voice for both since we only need one
             skeptic_voice_id=request.voice_id,

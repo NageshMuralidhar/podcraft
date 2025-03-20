@@ -2082,7 +2082,8 @@ Understanding this topic has significant implications for policy, practice, and 
                         text: podcastScript,
                         voice_id: 'nova', // Use a default voice or add a selection option
                         emotion: 'neutral',
-                        speed: 1.0
+                        speed: 1.0,
+                        title: topic // Add the topic as the title
                     })
                 });
 

@@ -99,10 +99,11 @@ class WorkflowResponse(BaseModel):
     updated_at: Optional[str]
 
 class TextPodcastRequest(BaseModel):
-    text: str 
-    voice_id: str 
-    emotion: str
-    speed: float
+    text: str
+    voice_id: str = "alloy"
+    emotion: str = "neutral"
+    speed: float = 1.0
+    title: Optional[str] = None
 
 class TextPodcastResponse(BaseModel):
     audio_url: str
