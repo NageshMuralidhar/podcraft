@@ -236,8 +236,8 @@ async def generate_podcast_stream(request: PodcastRequest, current_user: dict = 
     async def generate():
         try:
             # Store complete responses for podcast creation
-            believer_response = ""
-            skeptic_response = ""
+            believer_turns = {}  # Store responses by turn number
+            skeptic_turns = {}   # Store responses by turn number
             
             # Stream research results
             logger.info("Starting research phase (streaming)")
@@ -249,7 +249,7 @@ async def generate_podcast_stream(request: PodcastRequest, current_user: dict = 
                     if data["type"] == "final":
                         research_results = data["content"]
             
-            # Stream debate
+            # Stream debate and track turns properly
             logger.info("Starting debate phase (streaming)")
             async for chunk in generate_debate_stream(
                 research=research_results,
@@ -257,43 +257,68 @@ async def generate_podcast_stream(request: PodcastRequest, current_user: dict = 
                 skeptic_name=request.skeptic_voice_id
             ):
                 yield chunk
-                # Accumulate responses for podcast creation
+                # Parse the chunk
                 data = json.loads(chunk)
-                if data["type"] == "believer":
-                    believer_response += data["content"]
-                elif data["type"] == "skeptic":
-                    skeptic_response += data["content"]
+                
+                # Track responses by turn to maintain proper ordering
+                if data["type"] == "believer" and "turn" in data:
+                    turn = data["turn"]
+                    if turn not in believer_turns:
+                        believer_turns[turn] = ""
+                    believer_turns[turn] += data["content"]
+                elif data["type"] == "skeptic" and "turn" in data:
+                    turn = data["turn"]
+                    if turn not in skeptic_turns:
+                        skeptic_turns[turn] = ""
+                    skeptic_turns[turn] += data["content"]
             
-            # Create conversation blocks for podcast
+            # Create strictly alternating conversation blocks for podcast
             blocks = []
             
-            # Add believer chunks
-            believer_chunks = chunk_text(believer_response)
-            for i, chunk in enumerate(believer_chunks):
-                blocks.append({
-                    "name": f"{request.believer_voice_id}'s Perspective (Part {i+1})",
-                    "input": chunk,
-                    "silence_before": 1,
-                    "voice_id": request.believer_voice_id,
-                    "emotion": "neutral",
-                    "model": "tts-1",
-                    "speed": 1,
-                    "duration": 0
-                })
+            # Find the maximum turn number
+            max_turn = max(
+                max(skeptic_turns.keys()) if skeptic_turns else 0,
+                max(believer_turns.keys()) if believer_turns else 0
+            )
             
-            # Add skeptic chunks
-            skeptic_chunks = chunk_text(skeptic_response)
-            for i, chunk in enumerate(skeptic_chunks):
-                blocks.append({
-                    "name": f"{request.skeptic_voice_id}'s Perspective (Part {i+1})",
-                    "input": chunk,
-                    "silence_before": 1,
-                    "voice_id": request.skeptic_voice_id,
-                    "emotion": "neutral",
-                    "model": "tts-1",
-                    "speed": 1,
-                    "duration": 0
-                })
+            logger.info(f"Creating podcast with {len(believer_turns)} believer turns and {len(skeptic_turns)} skeptic turns")
+            logger.info(f"Max turn number: {max_turn}")
+            
+            # Create blocks in strict turn order: Skeptic 1, Believer 1, Skeptic 2, Believer 2, etc.
+            for turn in range(1, max_turn + 1):
+                # First Skeptic's turn
+                if turn in skeptic_turns and skeptic_turns[turn].strip():
+                    blocks.append({
+                        "name": f"{request.skeptic_voice_id}'s Turn {turn}",
+                        "input": skeptic_turns[turn],
+                        "silence_before": 1,
+                        "voice_id": request.skeptic_voice_id,
+                        "emotion": "neutral",
+                        "model": "tts-1",
+                        "speed": 1,
+                        "duration": 0,
+                        "type": "skeptic",
+                        "turn": turn
+                    })
+                
+                # Then Believer's turn
+                if turn in believer_turns and believer_turns[turn].strip():
+                    blocks.append({
+                        "name": f"{request.believer_voice_id}'s Turn {turn}",
+                        "input": believer_turns[turn],
+                        "silence_before": 1,
+                        "voice_id": request.believer_voice_id,
+                        "emotion": "neutral",
+                        "model": "tts-1",
+                        "speed": 1,
+                        "duration": 0,
+                        "type": "believer",
+                        "turn": turn
+                    })
+            
+            # Log the conversational structure for debugging
+            turn_structure = [f"{block.get('type', 'unknown')}-{block.get('turn', 'unknown')}" for block in blocks]
+            logger.info(f"Conversation structure: {turn_structure}")
             
             # Create podcast using TTS and store in MongoDB
             logger.info("Starting podcast creation with TTS")
@@ -303,7 +328,7 @@ async def generate_podcast_stream(request: PodcastRequest, current_user: dict = 
                 conversation_blocks=blocks,
                 believer_voice_id=request.believer_voice_id,
                 skeptic_voice_id=request.skeptic_voice_id,
-                user_id=str(current_user["_id"])  # Add user ID to podcast creation
+                user_id=str(current_user["_id"])
             )
             
             if "error" in result:

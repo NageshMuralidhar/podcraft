@@ -122,10 +122,10 @@ class PodcastManager:
             print(f"List file: {list_file}")
             print(f"Silence file: {silence_file}")
             
-            # Generate silence file first
+            # Generate shorter silence file (0.3 seconds instead of 1 second)
             silence_result = subprocess.run([
                 'ffmpeg', '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=mono', 
-                '-t', '1', '-q:a', '9', '-acodec', 'libmp3lame', silence_file
+                '-t', '0.3', '-q:a', '9', '-acodec', 'libmp3lame', silence_file
             ], capture_output=True, text=True)
 
             if silence_result.returncode != 0:
@@ -136,17 +136,20 @@ class PodcastManager:
                 print("Failed to create silence file")
                 return False
 
-            # Write the file list with absolute paths
+            # IMPORTANT: The order here determines the final audio order
+            print("\nGenerating files list in exact provided order:")
             try:
                 with open(list_file, "w", encoding='utf-8') as f:
-                    for audio_file in audio_files:
+                    for i, audio_file in enumerate(audio_files):
                         abs_audio_path = os.path.abspath(audio_file)
-                        print(f"Adding audio file: {abs_audio_path}")
+                        print(f"{i+1}. Adding audio file: {os.path.basename(abs_audio_path)}")
                         # Use forward slashes for ffmpeg compatibility
                         abs_audio_path = abs_audio_path.replace('\\', '/')
                         silence_path = silence_file.replace('\\', '/')
                         f.write(f"file '{abs_audio_path}'\n")
-                        f.write(f"file '{silence_path}'\n")
+                        # Add a shorter silence after each audio segment (except the last one)
+                        if i < len(audio_files) - 1:
+                            f.write(f"file '{silence_path}'\n")
             except Exception as e:
                 print(f"Error writing list file: {str(e)}")
                 return False
@@ -160,11 +163,13 @@ class PodcastManager:
             with open(list_file, 'r', encoding='utf-8') as f:
                 print(f.read())
 
-            # Merge all files using the concat demuxer
+            # Merge all files using the concat demuxer with optimized settings
             try:
+                # Use concat demuxer with additional parameters for better playback
                 result = subprocess.run(
                     ['ffmpeg', '-f', 'concat', '-safe', '0', '-i', list_file,
-                    '-c', 'copy', output_file],
+                     '-c:a', 'libmp3lame', '-q:a', '4', '-ar', '44100',
+                     output_file],
                     capture_output=True,
                     text=True,
                     check=True
@@ -211,79 +216,107 @@ class PodcastManager:
             
             audio_files = []
             
-            # Check if we have the new turn-based format or the old format
-            if any("turn" in block for block in conversation_blocks):
-                # New turn-based format
-                skeptic_parts = []
-                believer_parts = []
+            # Process the blocks differently based on format:
+            # 1. New turn-based format with "type" and "turn" fields
+            # 2. Blocks with "input" field but no turn-based structure (old format)
+            # 3. Blocks with both "input" field and turn-based structure (mixed format)
+            
+            # First check: New format blocks with type and turn
+            if any("type" in block and "turn" in block and "content" in block for block in conversation_blocks):
+                print("\nProcessing new format blocks with type, turn, and content fields")
                 
-                # Separate blocks by speaker and turn
-                for block in conversation_blocks:
-                    if "type" in block and "content" in block:
-                        if block["type"] == "skeptic":
-                            turn = block.get("turn", len(skeptic_parts) + 1)
-                            skeptic_parts.append((turn, block["content"]))
-                            print(f"Added skeptic part for turn {turn} - Will use voice: {skeptic_voice_id}")
-                        elif block["type"] == "believer":
-                            turn = block.get("turn", len(believer_parts) + 1)
-                            believer_parts.append((turn, block["content"]))
-                            print(f"Added believer part for turn {turn} - Will use voice: {believer_voice_id}")
+                # Process conversation blocks in the EXACT order they were provided
+                # This ensures proper alternation between speakers as specified by the caller
                 
-                if not skeptic_parts and not believer_parts:
-                    raise Exception("No valid conversation parts found in the blocks")
-                
-                # Sort by turn number
-                skeptic_parts.sort(key=lambda x: x[0])
-                believer_parts.sort(key=lambda x: x[0])
-                
-                print(f"Skeptic parts: {len(skeptic_parts)}, Believer parts: {len(believer_parts)}")
-                
-                # Generate audio for each turn in order
-                for turn_num in range(1, max(len(skeptic_parts), len(believer_parts)) + 1):
-                    # Skeptic's turn
-                    if turn_num <= len(skeptic_parts):
-                        turn, content = skeptic_parts[turn_num - 1]
-                        if content.strip():  # Only process non-empty content
-                            audio_file = os.path.join(podcast_temp_dir, f"skeptic_turn_{turn}.mp3")
-                            print(f"\nProcessing skeptic turn {turn} with voice {skeptic_voice_id}")
-                            if self.generate_speech(content, skeptic_voice_id, audio_file):
-                                audio_files.append(audio_file)
-                                print(f"Generated skeptic audio for turn {turn}")
-                            else:
-                                raise Exception(f"Failed to generate audio for skeptic turn {turn}")
-                    
-                    # Believer's turn
-                    if turn_num <= len(believer_parts):
-                        turn, content = believer_parts[turn_num - 1]
-                        if content.strip():  # Only process non-empty content
-                            audio_file = os.path.join(podcast_temp_dir, f"believer_turn_{turn}.mp3")
-                            print(f"\nProcessing believer turn {turn} with voice {believer_voice_id}")
-                            if self.generate_speech(content, believer_voice_id, audio_file):
-                                audio_files.append(audio_file)
-                                print(f"Generated believer audio for turn {turn}")
-                            else:
-                                raise Exception(f"Failed to generate audio for believer turn {turn}")
-            else:
-                # Old format - fallback to processing blocks sequentially
-                for i, block in enumerate(conversation_blocks):
-                    if "input" in block and block["input"].strip():
-                        # Check for either "Believer" in name or if the name starts with "alloy"
-                        is_believer = "Believer" in block.get("name", "") or block.get("name", "").lower().startswith("alloy")
-                        voice_id = believer_voice_id if is_believer else skeptic_voice_id
-                        speaker_type = "believer" if is_believer else "skeptic"
-                        print(f"\nProcessing {speaker_type} block {i+1} with voice {voice_id}")
-                        print(f"Block name: {block.get('name', '')}")  # Debug logging
-                        audio_file = os.path.join(podcast_temp_dir, f"part_{i+1}.mp3")
-                        if self.generate_speech(block["input"], voice_id, audio_file):
+                for idx, block in enumerate(conversation_blocks):
+                    if "type" in block and "content" in block and "turn" in block:
+                        turn = block.get("turn", 0)
+                        agent_type = block.get("type", "")
+                        content = block.get("content", "")
+                        
+                        if not content.strip():  # Skip empty content
+                            continue
+                            
+                        # Use the correct voice based on agent type
+                        voice_id = believer_voice_id if agent_type == "believer" else skeptic_voice_id
+                        file_prefix = "believer" if agent_type == "believer" else "skeptic"
+                        
+                        # Create a unique filename with turn number
+                        audio_file = os.path.join(podcast_temp_dir, f"{file_prefix}_turn_{turn}_{idx}.mp3")
+                        
+                        print(f"\nProcessing {agent_type} turn {turn} (index {idx}) with voice {voice_id}")
+                        print(f"Content preview: {content[:100]}...")
+                        
+                        if self.generate_speech(content, voice_id, audio_file):
+                            # Add to our audio files list IN THE ORIGINAL ORDER
                             audio_files.append(audio_file)
-                            print(f"Generated audio for part {i+1}")
+                            print(f"Generated {agent_type} audio for turn {turn}, added to position {len(audio_files)}")
                         else:
-                            raise Exception(f"Failed to generate audio for part {i+1}")
+                            raise Exception(f"Failed to generate audio for {agent_type} turn {turn}")
+                
+            # Second check: Blocks with input field and possibly turn information
+            elif any("input" in block for block in conversation_blocks):
+                print("\nProcessing blocks with input field")
+                
+                # Check if these blocks also have type and turn information
+                has_turn_info = any("turn" in block and "type" in block for block in conversation_blocks)
+                
+                if has_turn_info:
+                    print("Blocks have both input field and turn-based structure - using mixed format")
+                    # Sort by turn if available, ensuring proper sequence
+                    sorted_blocks = sorted(conversation_blocks, key=lambda b: b.get("turn", float('inf')))
+                    
+                    for idx, block in enumerate(sorted_blocks):
+                        if "input" in block and block["input"].strip():
+                            # Determine voice based on type field or name
+                            if "type" in block:
+                                is_believer = block["type"] == "believer"
+                            else:
+                                is_believer = "Believer" in block.get("name", "") or block.get("name", "").lower().startswith("alloy")
+                            
+                            voice_id = believer_voice_id if is_believer else skeptic_voice_id
+                            speaker_type = "believer" if is_believer else "skeptic"
+                            turn = block.get("turn", idx + 1)
+                            
+                            print(f"\nProcessing {speaker_type} block with turn {turn} using voice {voice_id}")
+                            audio_file = os.path.join(podcast_temp_dir, f"{speaker_type}_turn_{turn}_{idx}.mp3")
+                            
+                            if self.generate_speech(block["input"], voice_id, audio_file):
+                                audio_files.append(audio_file)
+                                print(f"Generated audio for {speaker_type} turn {turn}")
+                            else:
+                                raise Exception(f"Failed to generate audio for {speaker_type} turn {turn}")
+                else:
+                    # Old format - process blocks sequentially as they appear
+                    print("Processing old format blocks sequentially")
+                    for i, block in enumerate(conversation_blocks):
+                        if "input" in block and block["input"].strip():
+                            # Check for either "Believer" in name or if the name starts with "alloy"
+                            is_believer = "Believer" in block.get("name", "") or block.get("name", "").lower().startswith("alloy")
+                            voice_id = believer_voice_id if is_believer else skeptic_voice_id
+                            speaker_type = "believer" if is_believer else "skeptic"
+                            
+                            print(f"\nProcessing {speaker_type} block {i+1} with voice {voice_id}")
+                            print(f"Block name: {block.get('name', '')}")  # Debug logging
+                            
+                            audio_file = os.path.join(podcast_temp_dir, f"part_{i+1}.mp3")
+                            if self.generate_speech(block["input"], voice_id, audio_file):
+                                audio_files.append(audio_file)
+                                print(f"Generated audio for part {i+1}")
+                            else:
+                                raise Exception(f"Failed to generate audio for part {i+1}")
+            else:
+                raise Exception("Invalid conversation blocks format - no recognizable structure found")
 
             if not audio_files:
                 raise Exception("No audio files were generated from the conversation blocks")
 
-            print(f"Generated {len(audio_files)} audio files")
+            print(f"\nGenerated {len(audio_files)} audio files in total")
+            
+            # Print the final order of audio files for verification
+            print("\nFinal audio file order before merging:")
+            for i, file in enumerate(audio_files):
+                print(f"{i+1}. {os.path.basename(file)}")
             
             # Merge all audio files
             final_audio = os.path.join(podcast_temp_dir, "final_podcast.mp3")
