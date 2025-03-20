@@ -87,7 +87,7 @@
 }
 
 .sidebar-card.agents-view {
-    height: 55vh;
+    height: 56vh;
 }
 
 .sidebar-card {
@@ -1759,8 +1759,8 @@ select option:checked {
     padding: 0;
     width: 100%;
     margin: 0 auto;
-    height: 80vh;
-    max-height: 80vh;
+    height: 75vh;
+    max-height: 75vh;
     overflow-x: hidden;
     /* Prevent horizontal scrolling */
     overflow-y: auto;
@@ -1773,7 +1773,7 @@ select option:checked {
     padding-bottom: 8px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     color: #fff;
-    background: linear-gradient(0.25turn, #999, #000);
+    background: linear-gradient(0.25turn, #999, #fff);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;

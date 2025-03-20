@@ -124,11 +124,19 @@ const isValidConnection = (connection, nodes) => {
 const ToastContainer = ({ toast, setToast }) => {
     if (!toast || !toast.message) return null;
 
+    // Create a DOM container for toast if it doesn't exist
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+    }
+
     return (
         <WorkflowToast
             message={toast.message}
             type={toast.type}
-            onClose={() => setToast(null)}
+            onClose={() => setToast(initialToastState)}
         />
     );
 };
@@ -276,16 +284,28 @@ const WorkflowEditor = () => {
 
         try {
             const token = localStorage.getItem('token');
+
+            // Create workflow data
             const workflowData = {
                 name: workflowName,
                 description: '',
                 nodes: nodes,
                 edges: edges,
-                insights: workflowInsights || '' // Save insights with the workflow
+                insights: workflowInsights // Pass as is - backend handles null, object, or string
             };
 
+            // Safe logging of insights for debugging
+            console.log("Saving workflow with insights type:", typeof workflowInsights);
+
+            // Only attempt further logging if workflowInsights exists
             if (workflowInsights) {
-                console.log("Saving workflow with insights:", workflowInsights.substring(0, 100) + "...");
+                // Extremely defensive logging that avoids property access
+                try {
+                    console.log("Insights preview:",
+                        JSON.stringify(workflowInsights).slice(0, 100) + "...");
+                } catch (error) {
+                    console.log("Could not stringify insights for logging");
+                }
             }
 
             const url = workflowId === '-1'
@@ -314,14 +334,24 @@ const WorkflowEditor = () => {
                 navigate(`/workflows/workflow/${savedWorkflow.id}`, { replace: true });
             }
 
+            // Show success toast - ensure this matches the expected format
+            console.log("Displaying success toast");
             setToast({
                 message: 'Workflow saved successfully!',
                 type: 'success'
             });
+
+            // Ensure the toast is visible by forcing a small delay
+            setTimeout(() => {
+                console.log("Toast should be visible now");
+            }, 100);
+
         } catch (error) {
             console.error('Error saving workflow:', error);
+
+            // Show error toast
             setToast({
-                message: 'Failed to save workflow',
+                message: 'Error saving workflow: ' + (error.message || 'Unknown error'),
                 type: 'error'
             });
         }
@@ -600,6 +630,7 @@ const WorkflowEditor = () => {
 
                     // Update UI with insights
                     setWorkflowInsights(insights);
+                    setShowInsights(true); // Set showInsights to true after generation
                     executionResults[nodeId] = insights;
 
                     // Mark as completed
@@ -1033,6 +1064,7 @@ I encourage us to move beyond the binary thinking of simply accepting or rejecti
 
             // Update UI with HTML for display
             setWorkflowInsights(insightsHtml);
+            setShowInsights(true); // Set showInsights to true after generating HTML
 
             // Save the structured data to MongoDB - THIS IS THE KEY PART
             // We pass the structured data object, not the HTML
@@ -1062,6 +1094,7 @@ I encourage us to move beyond the binary thinking of simply accepting or rejecti
 
             // Update UI with error HTML
             setWorkflowInsights(errorHtml);
+            setShowInsights(true); // Set showInsights to true even in error case
 
             // Return fallback structured data
             return fallbackData;
@@ -1898,14 +1931,13 @@ Understanding this topic has significant implications for policy, practice, and 
         if (!showInsights) return null;
 
         return (
-            <div className="editor-insightss">
-
+            <div className="editor-insights">
                 {typeof workflowInsights === 'object' ? (
                     // Render React component for structured data
                     renderInsightsFromData(workflowInsights)
                 ) : (
                     // Render HTML string for legacy format
-                    <div className="insights-contents" dangerouslySetInnerHTML={{ __html: workflowInsightsHtml || workflowInsights }} />
+                    <div className="insights-content" dangerouslySetInnerHTML={{ __html: workflowInsightsHtml || workflowInsights }} />
                 )}
             </div>
         );
