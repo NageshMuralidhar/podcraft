@@ -2051,39 +2051,89 @@ Understanding this topic has significant implications for policy, practice, and 
             setSuccessMessage('');
 
             try {
-                // Filter out the researcher agent messages and format the transcript for the podcast
+                // Filter out the researcher agent messages
                 const agentTranscript = transcript.filter(entry => entry.agentId !== 'researcher');
 
                 if (agentTranscript.length === 0) {
                     throw new Error("No agent messages found to generate a podcast");
                 }
 
-                // Combine all agent messages into one cohesive script
-                // Format it as a debate with clear speaker identification
-                let podcastScript = `Let's discuss ${topic}.\n\n`;
+                // Sort transcript by turn number to ensure correct order
+                const sortedTranscript = [...agentTranscript].sort((a, b) => a.turn - b.turn);
 
-                agentTranscript.forEach(entry => {
-                    podcastScript += `${entry.agentName}: ${entry.content || entry.response}\n\n`;
+                // Get custom agents data to use their voice configurations
+                let customAgents = [];
+                try {
+                    const token = localStorage.getItem('token');
+                    const agentsResponse = await fetch('http://localhost:8000/agents', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (agentsResponse.ok) {
+                        customAgents = await agentsResponse.json();
+                        console.log('Loaded custom agents for podcast:', customAgents);
+                    }
+                } catch (error) {
+                    console.warn('Could not load custom agents, using default voices:', error);
+                }
+
+                // Create separate conversation blocks for each agent's turn
+                const conversationBlocks = sortedTranscript.map(entry => {
+                    // Get the content without the agent name prefix
+                    const content = entry.content || entry.response;
+
+                    // Determine voice ID for this agent
+                    let voiceId = 'nova'; // Default fallback voice
+
+                    // Check if this agent has a custom configuration
+                    if (entry.agentId) {
+                        const customAgent = customAgents.find(agent => agent.agent_id === entry.agentId);
+                        if (customAgent) {
+                            // Use the custom agent's voice configuration
+                            voiceId = customAgent.voice_id;
+                            console.log(`Using custom voice ${voiceId} for agent ${entry.agentName}`);
+                        } else {
+                            // Use default voices based on agent type
+                            const isBeliever = entry.agentName.toLowerCase().includes('believer');
+                            voiceId = isBeliever ? 'alloy' : 'echo';
+                            console.log(`Using default voice ${voiceId} for ${entry.agentName}`);
+                        }
+                    }
+
+                    // Create a conversation block
+                    return {
+                        type: entry.agentName.toLowerCase().includes('believer') ? "believer" : "skeptic",
+                        turn: entry.turn,
+                        content: content,
+                        voice_id: voiceId,
+                        agent_id: entry.agentId
+                    };
                 });
 
-                // Add a conclusion
-                podcastScript += `In conclusion: ${conclusion}`;
+                // Create the conclusion block
+                if (conclusion) {
+                    conversationBlocks.push({
+                        type: "conclusion",
+                        turn: conversationBlocks.length + 1,
+                        content: conclusion,
+                        voice_id: "nova" // Use a neutral voice for the conclusion
+                    });
+                }
 
-                console.log('Generating podcast from script:', podcastScript.substring(0, 100) + '...');
+                console.log('Generating podcast with conversation blocks:', conversationBlocks);
 
-                // Use the text-podcast endpoint to generate the audio
-                const response = await fetch('http://localhost:8000/generate-text-podcast', {
+                // Use the direct-podcast endpoint to generate the audio with multiple voices
+                const response = await fetch('http://localhost:8000/direct-podcast', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     },
                     body: JSON.stringify({
-                        text: podcastScript,
-                        voice_id: 'nova', // Use a default voice or add a selection option
-                        emotion: 'neutral',
-                        speed: 1.0,
-                        title: topic // Add the topic as the title
+                        topic: topic, // Use the actual topic as the title
+                        conversation_blocks: conversationBlocks
                     })
                 });
 

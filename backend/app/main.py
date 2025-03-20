@@ -929,4 +929,92 @@ async def get_workflow(workflow_id: str, current_user: dict = Depends(get_curren
         print(f"Error type: {type(e)}")
         import traceback
         print(f"Traceback: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/direct-podcast", response_model=TextPodcastResponse)
+async def create_direct_podcast(request: Request, current_user: dict = Depends(get_current_user)):
+    """Generate a podcast directly from conversation blocks with different voices."""
+    logger.info(f"Received direct podcast generation request from user: {current_user['username']}")
+    
+    try:
+        # Parse the request body
+        data = await request.json()
+        topic = data.get("topic", "Debate")
+        conversation_blocks = data.get("conversation_blocks", [])
+        
+        logger.info(f"Direct podcast request for topic: {topic}")
+        logger.info(f"Number of conversation blocks: {len(conversation_blocks)}")
+        
+        if not conversation_blocks:
+            raise HTTPException(status_code=400, detail="No conversation blocks provided")
+        
+        # Format conversation blocks for the podcast manager
+        formatted_blocks = []
+        for idx, block in enumerate(conversation_blocks):
+            # Extract data from each block
+            content = block.get("content", "")
+            voice_id = block.get("voice_id", "alloy")  # Default to alloy if not specified
+            block_type = block.get("type", "generic")
+            turn = block.get("turn", idx + 1)
+            agent_id = block.get("agent_id", "")
+            
+            # Format for podcast manager
+            formatted_block = {
+                "name": f"Turn {turn}",
+                "input": content,
+                "silence_before": 0.3,  # Short pause between blocks
+                "voice_id": voice_id,
+                "emotion": "neutral",
+                "model": "tts-1",
+                "speed": 1.0,
+                "duration": 0,
+                "type": block_type,
+                "turn": turn,
+                "agent_id": agent_id
+            }
+            
+            formatted_blocks.append(formatted_block)
+            
+        # Use the podcast manager to create the audio
+        result = await podcast_manager.create_podcast(
+            topic=topic,
+            research=f"Direct podcast on {topic}",
+            conversation_blocks=formatted_blocks,
+            believer_voice_id="alloy",  # These are just placeholders for the manager
+            skeptic_voice_id="echo", 
+            user_id=str(current_user["_id"])
+        )
+        
+        if "error" in result:
+            logger.error(f"Error in direct podcast creation: {result['error']}")
+            return TextPodcastResponse(
+                audio_url="",
+                status="failed",
+                error=result["error"],
+                duration=0,
+                updated_at=datetime.now().isoformat()
+            )
+        
+        # Create audio URL from the audio path
+        audio_url = f"/audio/{os.path.basename(os.path.dirname(result['audio_path']))}/final_podcast.mp3"
+        full_audio_url = f"http://localhost:8000{audio_url}"
+        
+        logger.info(f"Successfully generated direct podcast: {result.get('podcast_id')}")
+        
+        return TextPodcastResponse(
+            audio_url=full_audio_url,
+            duration=result.get("duration", 0),
+            status="completed",
+            error=None,
+            updated_at=datetime.now().isoformat()
+        )
+        
+    except Exception as e:
+        logger.error(f"Error generating direct podcast: {str(e)}", exc_info=True)
+        return TextPodcastResponse(
+            audio_url="",
+            status="failed",
+            error=str(e),
+            duration=0,
+            updated_at=datetime.now().isoformat()
+        ) 
